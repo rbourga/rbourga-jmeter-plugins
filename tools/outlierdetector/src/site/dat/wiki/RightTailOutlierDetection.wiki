@@ -16,14 +16,14 @@ In this table, when the number of samples that is left after the truncation is l
 Download the plugin using the JMeter Plugins Manager.<br>
 Then add the plugin to a Test Plan via the "Add > Non-Test Elements" menu.
 
-[[File:/img/wiki/rtod_NonTestElmnt.png]]
+[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/outlierdetector/src/site/img/wiki/rtod_NonTestElmnt.png]
 
 == Usage via the GUI ==
 === Filtering the outliers ===
 Specify the original JMeter results file, select your K option and hit "Detect".<br>
 The plugin parses the data, and if outliers are found, it will create two new files in the same folder of the original file: one for the outliers and another one for the remaining samplers with a suffix of "_trimmed" in the name.
 
-[[File:/img/wiki/rtod_Detect.png]]
+[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/outlierdetector/src/site/img/wiki/rtod_Detect.png]
 
 You can now use the "trimmed" file for performance analysis instead of the initial results file.
 
@@ -31,7 +31,7 @@ You can now use the "trimmed" file for performance analysis instead of the initi
 If you use the trimmed file for your performance analysis, it is recommended to also add the truncation results in your test report to indicate this operation to the stake holders.<br>
 By clicking on the "Save" button, the plugin will copy the truncation results into a csv file which you can then import into your final test report.
 
-[[File:/img/wiki/rtod_Save.png]]
+[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/outlierdetector/src/site/img/wiki/rtod_Save.png]
 
 == Usage via Command Line ==
 You can call the outlier detector in a script as in the following example:
