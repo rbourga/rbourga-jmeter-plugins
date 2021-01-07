@@ -5,6 +5,8 @@ The reasons as to why some data points are much slower than others are usually i
 
 This plugin acts as a "low-pass filter": it will parse the results of your test and discard the data at the top end so that when you use the "cleansed" data for your statistics, you will have a truer and more consistent picture of the application under test.
 
+[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/outlierdetector/src/site/img/wiki/rtod_Principle.jpg Principle]
+
 The plugin will find the upper bounds of the samples by itself using Tukey's technique and provides you with two options for the Tukey K parameter: you can either be very severe and remove all outliers by selecting K = 1.5, or be less stringent and remove only the far out values with K = 3.
 
 The plugin will save the trimmed results and the outliers in two separate files. You can then use the trimmed results file for your performance analysis; you may also review the list of outliers to check for any potential issues.
