@@ -81,7 +81,7 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 	private static final Logger oLogger = LoggerFactory.getLogger(RightTailOutlierDetectorGui.class);
 
 	// URL for project Wiki page
-	public static final String WIKIPAGE = "https://github.com/rbourga/jmeter-plugins-2/tools/outlierdetector/src/site/dat/wiki/RightTailOutlierDetection.wiki";
+	public static final String WIKIPAGE = "https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/outlierdetector/src/site/dat/wiki/RightTailOutlierDetection.wiki";
 
 	// Internal lists to store the samples grouped by their labels and to save the outliers
 	private List<SampleResult> aOutlierList = new ArrayList<SampleResult>();
@@ -368,6 +368,8 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 		this.setLayout(new BorderLayout());
 		this.setBorder(makeBorder());
 
+		// Add title
+		//this.add(makeTitlePanel(), BorderLayout.NORTH);
 		// Add title and help link
 		this.add(JMeterPluginsUtils.addHelpLinkToPanel(makeTitlePanel(), WIKIPAGE), BorderLayout.NORTH);
 
