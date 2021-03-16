@@ -1,7 +1,7 @@
 = Right Tail Outlier Detector =
 Experience shows that often, in performance testing, you may have a number of data points whose elapsed times are significantly higher than your normal observations. When you use these results to generate your statistics, you will get statistical values "skewed to the right" and which do not represent the real picture of the application you tested. 
 
-The reasons as to why some data points are much slower than others are usually independent from the application under test and due to environmental issues such as ad-hoc network issues, jobs or tasks kicking off on the server under test in the middle of your test such as IIS Application Pool Recycles etc.
+The reasons as to why some data points are much slower than others are usually independent from the application under test and due to environmental issues such as ad-hoc network issues, jobs or tasks kicking off on the server under test in the middle of your test such as IIS Application Pool Recycles, Garbage Collection etc.
 
 This plugin acts as a "low-pass filter": it will parse the results of your test and discard the data at the top end so that when you use the "cleansed" data for your statistics, you will have a truer and more consistent picture of the application under test.
 
