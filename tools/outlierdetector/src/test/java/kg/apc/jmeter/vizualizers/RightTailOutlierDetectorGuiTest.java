@@ -26,6 +26,7 @@ public class RightTailOutlierDetectorGuiTest {
 	public static void setUpClass() throws Exception {	
 		TestJMeterUtils.createJmeterEnv();
 		DATA_DIR = TestJMeterUtils.getTempDir();
+		System.out.println("RightTailOutlierDetectorGuiTest: check files at " + DATA_DIR);
 	}
 
 	public RightTailOutlierDetectorGuiTest() {

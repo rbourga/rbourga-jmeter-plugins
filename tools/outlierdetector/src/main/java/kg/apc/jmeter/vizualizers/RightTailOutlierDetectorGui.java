@@ -1,20 +1,17 @@
-// Needs Java library with minimum level of 1.8 
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Copyright 2021 Robert Bourgault du Coudray
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * limitations under the License. 
  */
 
 package kg.apc.jmeter.vizualizers;
@@ -36,6 +33,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -63,203 +61,49 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kg.apc.jmeter.JMeterPluginsUtils;
+import rbourga.maths.outlierdetection.UpperFenceOutlierDetector;
 
+/**
+ * Considers all values greater than (Q3 + k * IQR) as outliers.
+ */
 public class RightTailOutlierDetectorGui extends AbstractVisualizer implements ActionListener, Clearable {
-	/**
-	 * For each group of samplers, this non-test element plug-in removes those where
-	 * their elapsed time exceeds Tukey's upper fence.
-	 */
+	// Extends the AbstractVisualizer class because it provides the easiest means to handle SampleResults.
+
 	private static final long serialVersionUID = 1L;
+	private static final Logger oLogger = LoggerFactory.getLogger(RightTailOutlierDetectorGui.class);
+
+	// URL for project Wiki page
+	public static final String WIKIPAGE = "https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/outlierdetector/src/site/dat/wiki/RightTailOutlierDetection.wiki";
+	public String getWikiPage() {
+		return WIKIPAGE;
+	}
+	
+	// Buttons for Tukey's Control Panel
+	private final JRadioButton oJRadioButton_1_5 = new JRadioButton("1.5 (detect all outliers)", false);
+	private final JRadioButton oJRadioButton_3 = new JRadioButton("3 (detect only extreme values)", true);
+
+	// Objects for the File Panel selector
+	private FilePanel oFilePanel;
+	public FilePanel getInputFilePanel() {
+		return oFilePanel;
+	}
+	// File extensions that are authorized in the File Panel filter
+	private static String sInputFileDirectoryName; 
+	private static String sInputFileBaseName;
+	private static final String[] EXTS = { ".jtl", ".csv", ".tsv" };
 
 	// Strings associated with the actions of the control buttons in the UI
 	public static final String ACTION_DETECT = "detect";
 	public static final String ACTION_SAVE = "save";
 
-	// File extensions that are authorized in the File Panel filter
-	private static final String[] EXTS = { ".jtl", ".csv", ".tsv" };
+	// We store the samples in a list and group them by their labels
+	private static List<SampleResult> aOutlierList = new ArrayList<SampleResult>();
+	private static HashMap<String, List<SampleResult>> mSampleList = new HashMap<String, List<SampleResult>>();
 
-	private static final Logger oLogger = LoggerFactory.getLogger(RightTailOutlierDetectorGui.class);
-
-	// URL for project Wiki page
-	public static final String WIKIPAGE = "https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/outlierdetector/src/site/dat/wiki/RightTailOutlierDetection.wiki";
-
-	// Internal lists to store the samples grouped by their labels and to save the outliers
-	private List<SampleResult> aOutlierList = new ArrayList<SampleResult>();
-	private HashMap<String, List<SampleResult>> mSampleList = new HashMap<String, List<SampleResult>>();
-
-	// Only for use in unit tests
-	private Boolean bUnitTests = false;
-
-	// Objects for the File Panel selector
-	private FilePanel oFilePanel;
-	private String sInputFile = null;
-	private String sInputFileBaseName;
-	private String sInputFileDirectoryName;
-	private String sInputFileExtension;
-
-	// Objects to save various results into files
-	private FileWriter oFileWriter = null;
-	private PrintWriter oPrintWriter = null;
-	private String sOutputFile = null;
-
-	// Buttons for Tukey's Control Panel
-	private double fTukey_K;
-	private final JRadioButton oJRadioButton_1_5 = new JRadioButton("1.5 (detect all outliers)", false);
-	private final JRadioButton oJRadioButton_3 = new JRadioButton("3 (detect only extreme values)", true);
-
-	// Table for displaying the results of trimming
-	private JTable oJTable = null;
-	private PowerTableModel oPowerTableModel = null;
-
-    public void setInputFile(String string) {
-    	sInputFile = string;
-		sInputFileDirectoryName = FilenameUtils.getFullPath(sInputFile);
-		sInputFileBaseName = FilenameUtils.getBaseName(sInputFile);
-		sInputFileExtension = FilenameUtils.getExtension(sInputFile);
-    }
-
-    public void setTukey(String string) {
-    	fTukey_K = Double.parseDouble(string);
-    }
- 
-	// Create the GUI
-	public RightTailOutlierDetectorGui() {
-		super();
-		init();
-	}
-	
-	public void actionPerformed(ActionEvent actionEvt) {
-		String _sActionCommand = actionEvt.getActionCommand();
-		switch (_sActionCommand) {
-		case ACTION_DETECT:
-			// Parse filename
-			String _sInputFile = oFilePanel.getFilename();
-			if (_sInputFile.isEmpty()) {
-				if (bUnitTests) {
-					System.out.println("RightTailOutlierDetectorGUI_ERROR: file name empty - Please set a filename.");
-				} else {
-					GuiPackage.showErrorMessage("File name empty - please enter a filename.", "Input file error");
-				}
-				return;
-			}
-			if (!bUnitTests) {
-				if (!(new File(_sInputFile).exists())) {
-					GuiPackage.showErrorMessage("Cannot find specified file - please enter a valid filename.", "Input file error");
-					return;
-				}
-			}
-
-			// Extract filename parameters
-	        setInputFile(_sInputFile);
-
-			// Get Tukey's option that was selected
-			if (oJRadioButton_1_5.isSelected()) {
-				fTukey_K = 1.5;
-			} else {
-				fTukey_K = 3.0;
-			}
-
-			// Clear any statistics from a previous analysis
-			// Not called in unit tests so that test data remains for the testing
-			if (!bUnitTests) {
-				clearData();
-			}
-
-			// Now, process the data
-			int _iTrimResult = outlierDetection();
-			switch (_iTrimResult) {
-			case -1:
-				if (bUnitTests) {
-					System.out.println(
-							"RightTailOutlierDetectorGUI_ERROR: No samplers found - please give some samplers!");
-				} else {
-					GuiPackage.showErrorMessage("No samplers found in results file - please check your file.",
-							"Input file error");
-				}
-				break;
-			case 0:
-				if (bUnitTests) {
-					System.out.println("RightTailOutlierDetectorGUI_INFO: Done, no outliers found.");
-				} else {
-					GuiPackage.showInfoMessage("No outliers found in the right tail.", "Right Tail Outlier Detection");
-				}
-				break;
-			default:
-				if (bUnitTests) {
-					System.out.println("RightTailOutlierDetectorGUI_INFO: Done, " + _iTrimResult
-							+ " outliers found in the right tail.\n" + "Refer to " + sInputFileBaseName
-							+ "_Outliers and " + sInputFileBaseName + "_Trimmed files.");
-				} else {
-					GuiPackage.showInfoMessage(_iTrimResult + " outliers found in the right tail.\n" + "Refer to "
-							+ sInputFileBaseName + "_Outliers and " + sInputFileBaseName + "_Trimmed files.",
-							"Right Tail Outlier Detection");
-				}
-			}
-			break;
-		case ACTION_SAVE:
-			if (oPowerTableModel.getRowCount() == 0) {
-				if (bUnitTests) {
-					System.out.println("RightTailOutlierDetectorGUI_ERROR: Data table empty!");
-				} else {
-					GuiPackage.showErrorMessage("Data table empty - please perform Detect before.",
-							"Save Table Data error");
-				}
-				return;
-			}
-			saveTrimStatistics();
-			if (bUnitTests) {
-				System.out.println("RightTailOutlierDetectorGUI_INFO: Stats saved to " + sOutputFile + ".");
-			} else {
-				GuiPackage.showInfoMessage("Data saved to " + sOutputFile + ".", "Save Table Data");
-			}
-			break;
-		default:
-			if (bUnitTests) {
-				System.out.println("RightTailOutlierDetectorGUI_ERROR: unknown action " + _sActionCommand + ".");
-			} else {
-				oLogger.warn("RightTailOutlierDetectorGUI: unknown action " + _sActionCommand + ".");
-			}
-		}
-	}
-
-	@Override
-	public void add(SampleResult sample) {
-		/*
-		 * Called by JMeter's engine when we load the data file, but not by
-		 * TestJMeterUtils. This will add the samples to mSampleList with label as key.
-		 */	
-		String _sLabelId = sample.getSampleLabel();
-		if (!mSampleList.containsKey(_sLabelId)) {
-			// New label sample
-			mSampleList.put(_sLabelId, new ArrayList<SampleResult>());
-		}
-		// Use the default config of this.collector as save properties for the sample
-		sample.setSaveConfig(collector.getSaveConfig());
-		mSampleList.get(_sLabelId).add(sample);
-	}
-	
-	public void clearData() {
-		/*
-		 * Called when user clicks on "Clear" or "Clear All" buttons. Clears data
-		 * specific to this plugin
-		 */
-		collector.clearData();
-		mSampleList.clear();
-		aOutlierList.clear();
-		oPowerTableModel.clearData();
-	}
-
-	public void clearGui() {
-		/*
-		 * Called when user selects the plugin in the tree Call default clear method
-		 */
-		super.clearGui();
-	}
-
-	public void createDataModelTable( ) {
-		// Grid to store some statistics results after the trimming of samplers
-		// TODO: add the new column labels to
-		// core/org/apache/jmeter/resources/messages.properties files.
+	// Table to save some stats results of the trimming process
+	private static PowerTableModel oPowerTableModel = null;
+	public void createDataModelTable() {
+		// TODO add the new column labels to core/org/apache/jmeter/resources/messages.properties files.
 		oPowerTableModel = new PowerTableModel(new String[] { JMeterUtils.getResString("sampler label"), // Label
 				JMeterUtils.getResString("aggregate_report_count"), // # Samples
 				"Upper Fence", "# Trimmed", // number of samples that have been discarded
@@ -267,13 +111,77 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 				"Small Group" // shows a tick if remaining number of samples < 100
 		}, new Class[] { String.class, Integer.class, Integer.class, Integer.class, Double.class, Boolean.class });
 	}
+    public void saveDataModelTable() {
+		// By default, data saved with comma separated values
+		FileWriter _oFileWriter = null;
+    	String _sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_TrimSummary.csv";
+		try {
+			_oFileWriter = new FileWriter(_sOutputFile);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			CSVSaveService.saveCSVStats(oPowerTableModel, _oFileWriter);
+			_oFileWriter.close();
+		} catch (IOException ioE) {
+			ioE.printStackTrace();
+		}		
+	}
 
+	// Table for displaying the results of trimming
+	private JTable oJTable = null;
+
+	private PrintWriter initializeFileOutput(String sFilename) {
+		PrintWriter _oPrintWriter = null;
+		try {
+			_oPrintWriter = new PrintWriter(sFilename);
+			// Save the header line
+			_oPrintWriter.println(CSVSaveService.printableFieldNamesToString());
+		} catch (FileNotFoundException e) {
+			// Auto-generated catch block
+			e.printStackTrace();
+		}
+		return _oPrintWriter;
+	}
+
+	// Used only in unit tests
+	private Boolean bUnitTests = false;
 	public void enableUnitTests() {
 		bUnitTests = true;
 	}
 
-	public FilePanel getInputFilePanel() {
-		return oFilePanel;
+	@Override
+	public void add(SampleResult sample) {
+		/*
+		 * Called by JMeter's engine when we load the data file (but not when from TestJMeterUtils).
+		 * We add the samples to mSampleList with label as key.
+		 */
+		String _sLabelId = sample.getSampleLabel();
+		if (!mSampleList.containsKey(_sLabelId)) {
+			// New label sample
+			mSampleList.put(_sLabelId, new ArrayList<SampleResult>());
+		}
+		// Use the default config of this.collector as save properties for the sample
+		sample.setSaveConfig(collector.getSaveConfig());
+		mSampleList.get(_sLabelId).add(sample);		
+	}
+
+	@Override
+	public void clearData() {
+		/* Called when user clicks on "Clear" or "Clear All" buttons.
+		 * Clears data specific to this plugin
+		 */
+		aOutlierList.clear();
+		collector.clearData();
+		mSampleList.clear();
+		oPowerTableModel.clearData();		
+	}
+
+	public void clearGui() {
+		/*
+		 * Called when user selects the plugin in the tree Call default clear method
+		 */
+		super.clearGui();
 	}
 
 	@Override
@@ -285,7 +193,12 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 		 */
 		return this.getClass().getSimpleName();
 	}
-
+	
+	 @Override
+	public String getStaticLabel() {
+		return JMeterPluginsUtils.prefixLabel("Right Tail Outlier Detection");
+	}
+	
 	public Collection<String> getMenuCategories() {
 		/*
 		 * Adds this visualizer to the Non-Test Elements of the JMeter GUI
@@ -293,77 +206,10 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 		return Arrays.asList(MenuFactory.NON_TEST_ELEMENTS);
 	}
 
-	 @Override
-	public String getStaticLabel() {
-		return JMeterPluginsUtils.prefixLabel("Right Tail Outlier Detection");
-	}
+	// Create the GUI
+	public RightTailOutlierDetectorGui() {
+		super();
 
-	private double getUpperFence(List<SampleResult> dataList) {
-		/*
-		 * dataList is a list of sample results that have been sorted by increasing
-		 * values of elapsed time. This function returns the upper fence in this list as
-		 * per following Tukey criteria: upperFence = Q3 + k*(Q3-Q1) where: Q1 = median
-		 * of the lower half of the data Q3 = median of the upper half of the data To
-		 * select Tukey's Q1 and Q3 hinges: - if there is an odd number of data points
-		 * in the original ordered data set, we include the median (i.e., the central
-		 * value in the ordered list) in both halves; - if there is an even number of
-		 * data points, we split this data set exactly in half; Also please note that in
-		 * the following code, when using indexes, we substract 1 because arrays start
-		 * at 0!
-		 */
-		int _iMidHinge, _iLowerHinge, _iUpperHinge;
-		double _fQ1Elapsed, _fQ3Elapsed;
-
-		if ((dataList.size() % 2) != 0) {
-			// Odd set of numbers in the dataList
-			_iMidHinge = (dataList.size() + 1) / 2;
-			if ((_iMidHinge % 2) != 0) {
-				// Odd set of numbers in each half
-				_iLowerHinge = (_iMidHinge + 1) / 2;
-				_fQ1Elapsed = dataList.get(_iLowerHinge - 1).getTime();
-				_iUpperHinge = _iLowerHinge + _iMidHinge - 1;
-				_fQ3Elapsed = dataList.get(_iUpperHinge - 1).getTime();
-			} else {
-				// Even size in each half: return the average of the 2 middle values
-				_iLowerHinge = _iMidHinge / 2;
-				_fQ1Elapsed = (dataList.get(_iLowerHinge - 1).getTime() + dataList.get(_iLowerHinge).getTime()) / 2.0;
-				_iUpperHinge = _iLowerHinge + _iMidHinge;
-				_fQ3Elapsed = (dataList.get(_iUpperHinge - 2).getTime() + dataList.get(_iUpperHinge - 1).getTime())
-						/ 2.0;
-
-			}
-		} else {
-			// Even set of numbers in the dataList
-			_iMidHinge = dataList.size() / 2;
-			if ((_iMidHinge % 2) != 0) {
-				// Odd set of numbers in each half
-				_iLowerHinge = (_iMidHinge + 1) / 2;
-				_fQ1Elapsed = dataList.get(_iLowerHinge - 1).getTime();
-				_iUpperHinge = _iLowerHinge + _iMidHinge;
-				_fQ3Elapsed = dataList.get(_iUpperHinge - 1).getTime();
-			} else {
-				// Even size in each half: return the average of the 2 middle values
-				_iLowerHinge = _iMidHinge / 2;
-				_fQ1Elapsed = (dataList.get(_iLowerHinge - 1).getTime() + dataList.get(_iLowerHinge).getTime()) / 2.0;
-				_iUpperHinge = _iLowerHinge + _iMidHinge;
-				_fQ3Elapsed = (dataList.get(_iUpperHinge - 1).getTime() + dataList.get(_iUpperHinge).getTime()) / 2.0;
-			}
-		}
-
-		// Return the upper fence value
-		double _fIqr = _fQ3Elapsed - _fQ1Elapsed; // inter-quartile range
-		double _fUpLimit = _fQ3Elapsed + (fTukey_K * _fIqr);
-		return _fUpLimit;
-	}
-	
-	public String getWikiPage() {
-		return WIKIPAGE;
-	}
-
-	private void init() {
-		/*
-		 * Initialize the components and layout of this component.
-		 */
 		// Use standard JMeter border
 		this.setLayout(new BorderLayout());
 		this.setBorder(makeBorder());
@@ -427,33 +273,110 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 		// Hide the default file panel of this class as we are using another file panel
 		this.getFilePanel().setVisible(false);
 	}
+	
+	public void actionPerformed(ActionEvent actionEvt) {
+		String _sActionCommand = actionEvt.getActionCommand();
+		switch (_sActionCommand) {
+		case ACTION_DETECT:
+			double _kValue;
+			// Parse filename
+			String _sInputFile = oFilePanel.getFilename();
+			if (_sInputFile.isEmpty()) {
+				if (bUnitTests) {
+					System.out.println("RightTailOutlierDetectorGUI_ERROR: file name empty - Please set a filename.");
+				} else {
+					GuiPackage.showErrorMessage("File name empty - please enter a filename.", "Input file error");
+				}
+				return;
+			}
+			if (!bUnitTests) {
+				if (!(new File(_sInputFile).exists())) {
+					GuiPackage.showErrorMessage("Cannot find specified file - please enter a valid filename.", "Input file error");
+					return;
+				}
+			}
 
-	private PrintWriter initializeFileOutput() {
-		try {
-			oPrintWriter = new PrintWriter(sOutputFile);
-		} catch (FileNotFoundException e) {
-			// Auto-generated catch block
-			e.printStackTrace();
+			// Get Tukey's option that was selected
+			if (oJRadioButton_1_5.isSelected()) {
+				_kValue = 1.5;
+			} else {
+				_kValue = 3.0;
+			}
+
+			// Clear any statistics from a previous analysis
+			// Not called in unit tests so that test data remains for the testing
+			if (!bUnitTests) {
+				clearData();
+			}
+
+			// Now, process the data
+			int _iTrimResult = outlierDetection(_sInputFile, _kValue);
+			switch (_iTrimResult) {
+			case -1:
+				if (bUnitTests) {
+					System.out.println(
+							"RightTailOutlierDetectorGUI_ERROR: No samplers found - please give some samplers!");
+				} else {
+					GuiPackage.showErrorMessage("No samplers found in results file - please check your file.",
+							"Input file error");
+				}
+				break;
+			case 0:
+				if (bUnitTests) {
+					System.out.println("RightTailOutlierDetectorGUI_INFO: Done, no outliers found.");
+				} else {
+					GuiPackage.showInfoMessage("No outliers found in the right tail.", "Right Tail Outlier Detection");
+				}
+				break;
+			default:
+				if (bUnitTests) {
+					System.out.println("RightTailOutlierDetectorGUI_INFO: Done, " + _iTrimResult
+							+ " outliers found in the right tail.\n" + "Refer to " + sInputFileBaseName	+ " _Outliers and _Trimmed files.");
+				} else {
+					GuiPackage.showInfoMessage(_iTrimResult + " outliers found in the right tail.\n" + "Refer to " + sInputFileBaseName	+" _Outliers and _Trimmed files.", "Right Tail Outlier Detection");
+				}
+			}
+			break;
+		case ACTION_SAVE:
+			if (oPowerTableModel.getRowCount() == 0) {
+				if (bUnitTests) {
+					System.out.println("RightTailOutlierDetectorGUI_ERROR: Data table empty!");
+				} else {
+					GuiPackage.showErrorMessage("Data table empty - please perform Detect before.",
+							"Save Table Data error");
+				}
+				return;
+			}
+			saveDataModelTable();
+			if (bUnitTests) {
+				System.out.println("RightTailOutlierDetectorGUI_INFO: Stats saved to " + sInputFileBaseName + "_TrimSummary.csv.");
+			} else {
+				GuiPackage.showInfoMessage("Data saved to " + sInputFileBaseName + "_TrimSummary.csv.", "Save Table Data");
+			}
+			break;
+		default:
+			if (bUnitTests) {
+				System.out.println("RightTailOutlierDetectorGUI_ERROR: unknown action " + _sActionCommand + ".");
+			} else {
+				oLogger.warn("RightTailOutlierDetectorGUI: unknown action " + _sActionCommand + ".");
+			}
 		}
-		// Save the header line
-		oPrintWriter.println(CSVSaveService.printableFieldNamesToString());
-		return oPrintWriter;
 	}
-
-	public int outlierDetection() {
-		SampleEvent _oSampleEvent = null;
+	
+	public int outlierDetection(String sInputFile, double fTukey_K) {
 		int _iNumberOfTotalObjectsTrimmed = 0;
+		UpperFenceOutlierDetector _oUpperFenceOutlierDetector = new UpperFenceOutlierDetector();
 
-		// Load the data file using the default collector provided by the AbstractVisualizer class
+		// 1. Load the data file using the default collector provided by the AbstractVisualizer class
 		collector.setFilename(sInputFile);
-		// Set the listener when called from RightTailOutlierDetectorTool
-		collector.setListener(this);		
+		// Set the listener for when called from RightTailOutlierDetectorTool
+		collector.setListener(this);
 		collector.loadExistingFile();
 		if (mSampleList.isEmpty()) {
 			return -1; // Nothing to load, so abort...
 		}
 
-		// Now, process the data points...
+		// 2. Now, process the data points...
 		for (String _sLabelId : mSampleList.keySet()) {
 			List<SampleResult> _aLabelSamples = mSampleList.get(_sLabelId);
 			int _iNumberOfObjectsBefore = _aLabelSamples.size();
@@ -469,10 +392,10 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 				 */
 				boolean _bDataTrimmed = true;
 				do {
-					_fUpperFence = getUpperFence(_aLabelSamples);
-					_fUpperFenceMin = Math.min(_fUpperFence, _fUpperFenceMin); // Save the most severe limit for the
-																				// report
-
+					// Get the upper fence
+					_fUpperFence = _oUpperFenceOutlierDetector.getUpperFence(_aLabelSamples, fTukey_K);
+					// Save the most severe limit for the report
+					_fUpperFenceMin = Math.min(_fUpperFence, _fUpperFenceMin); 
 					// Now remove all samples that are higher than the upper fence
 					int _iSampleIndex = _aLabelSamples.size() - 1; // for performance reasons, start by the end
 					_bDataTrimmed = false;
@@ -520,48 +443,36 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 
 		// Save the outliers in a file for post analysis
 		if (aOutlierList.isEmpty() == false) {
+			SampleEvent _oSampleEvent = null;
+			sInputFileDirectoryName = FilenameUtils.getFullPath(sInputFile);
+			sInputFileBaseName = FilenameUtils.getBaseName(sInputFile);
+			String _sInputFileExtension = FilenameUtils.getExtension(sInputFile);
+
 			// Filename containing the excluded samplers only
-			sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_Outliers."
-					+ sInputFileExtension;
-			oPrintWriter = initializeFileOutput();
+			String _sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_Outliers." + _sInputFileExtension;
+			PrintWriter _oPrintWriter = initializeFileOutput(_sOutputFile);
 			// Now save the outliers
 			for (SampleResult _oSampleResult : aOutlierList) {
 				_oSampleEvent = new SampleEvent(_oSampleResult, null);
-				oPrintWriter.println(CSVSaveService.resultToDelimitedString(_oSampleEvent));
+				_oPrintWriter.println(CSVSaveService.resultToDelimitedString(_oSampleEvent));
 			}
 			// Close the file
-			oPrintWriter.close();
+			_oPrintWriter.close();
 
 			// Same thing for the non-trimmed results, saved in a separate file
-			sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_Trimmed." + sInputFileExtension;
-			oPrintWriter = initializeFileOutput();
+			_sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_Trimmed." + _sInputFileExtension;
+			_oPrintWriter = initializeFileOutput(_sOutputFile);
 			// Now save the good samplers
 			for (String _sLabelId : mSampleList.keySet()) {
 				List<SampleResult> _aSampleResult = mSampleList.get(_sLabelId);
 				for (SampleResult _oSampleResult : _aSampleResult) {
 					_oSampleEvent = new SampleEvent(_oSampleResult, null);
-					oPrintWriter.println(CSVSaveService.resultToDelimitedString(_oSampleEvent));
+					_oPrintWriter.println(CSVSaveService.resultToDelimitedString(_oSampleEvent));
 				}
 			}
 			// Close the file
-			oPrintWriter.close();
+			_oPrintWriter.close();
 		}
 		return _iNumberOfTotalObjectsTrimmed;
-	}
-	
-    public void saveTrimStatistics() {
-		// By default, data saved with comma separated values
-		sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_TrimSummary.csv";
-		try {
-			oFileWriter = new FileWriter(sOutputFile);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-		try {
-			CSVSaveService.saveCSVStats(oPowerTableModel, oFileWriter);
-			oFileWriter.close();
-		} catch (IOException ioE) {
-			ioE.printStackTrace();
-		}		
 	}
 }

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2021 Robert Bourgault du Coudray
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License. 
+ */
+
 package kg.apc.cmdtools;
 
 import java.io.File;
@@ -16,6 +32,12 @@ public class RightTailOutlierDetectorTool extends AbstractCMDTool {
         JMeterPluginsUtils.prepareJMeterEnv(UniversalRunner.getJARLocation());
         LoggingUtils.addLoggingConfig();
 	}
+	
+	@Override
+	protected void showHelp(PrintStream os) {
+		os.println("Options for tool 'RightTailOutlierDetector': --input-file <filenameIn>"
+				+ "--tukey-k <K value (1.5 or 3)>");
+	}	
 
 	@Override
 	protected int processParams(ListIterator args) throws UnsupportedOperationException, IllegalArgumentException {
@@ -60,15 +82,12 @@ public class RightTailOutlierDetectorTool extends AbstractCMDTool {
 			throw new IllegalArgumentException("Invalid K value (only 1.5 or 3 accepted)");
 		}
 
-		// Do job:
-		// Initialize variables
+		// Do the job:
 		RightTailOutlierDetectorGui _oRightTailOutlierDetectorGui = new RightTailOutlierDetectorGui();
-		_oRightTailOutlierDetectorGui.setInputFile(_sInputFile);
-		_oRightTailOutlierDetectorGui.setTukey(_sTukeyK);
-
-		// Now, process the data
 		_oRightTailOutlierDetectorGui.createDataModelTable();
-		int _iTrimResult = _oRightTailOutlierDetectorGui.outlierDetection();
+		int _iTrimResult = _oRightTailOutlierDetectorGui.outlierDetection(_sInputFile, Double.parseDouble(_sTukeyK));
+
+		// Process the results
 		System.out.println("RightTailOutlierDetectorTool: " + _iTrimResult);
 		switch (_iTrimResult) {
 		case -1:
@@ -78,16 +97,10 @@ public class RightTailOutlierDetectorTool extends AbstractCMDTool {
 			System.out.println("No outliers found in the right tail.");
 			break;
 		default:
-			_oRightTailOutlierDetectorGui.saveTrimStatistics();
+			_oRightTailOutlierDetectorGui.saveDataModelTable();
 			System.out.println(_iTrimResult + " outliers found in the right tail.\n" + "Refer to the _Outliers and _Trimmed files.");
 			System.out.println("Trimming stats saved to _TrimSummary.csv file.");
 		}
 		return 0;
-	}
-
-	@Override
-	protected void showHelp(PrintStream os) {
-		os.println("Options for tool 'RightTailOutlierDetector': --input-file <filenameIn>"
-				+ "--tukey-k <K value (1.5 or 3)>");
 	}
 }
