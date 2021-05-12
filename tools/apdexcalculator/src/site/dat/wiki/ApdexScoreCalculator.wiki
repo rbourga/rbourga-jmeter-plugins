@@ -1,0 +1,41 @@
+= Apdex Score Calculator Plugin =
+One of the challenges when analyzing performance test results is to make a pass/fail call. Given your statistical summary results (average, min, max, percentiles etc.), you have to decide how close or far your application is from your SLAs.
+
+The [http://www.apdex.org/ Apdex] (Application Performance Index) was precisely designed to make this task easier for you. It defines [https://www.dynatrace.com/support/help/how-to-use-dynatrace/real-user-monitoring/basic-concepts/ratings/apdex-ratings/ ratings] from "Unacceptable" up to "Excellent" that will help you find how your app stands out.
+
+This plugin parses the results of a JMeter test and calculates the Apdex score and rating of every sampler. Apdex metric is also included in JMeter's [https://jmeter.apache.org/usermanual/generating-dashboard.html Report Dash board]. But this plugin provides a quick and easy way to get the Apdex score at the end of a test without having to go through the full dash board report.
+
+Once you have specified the Tolerated threshold, the plugin will compute the Apdex score of the samples and display the results in a table. In this table, when the number of samples is less than 100, the plugin will mark them as "Small Group" as a precaution. You can export this table into a file should you wish to add the Apdex results in your test report.
+
+== Setup ==
+Download the plugin using the JMeter Plugins Manager.<br>
+Then add the plugin to a Test Plan via the "Add > Non-Test Elements" menu.
+
+[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/apdexcalculator/src/site/img/wiki/apdex_NonTestElement.png NonTestElement]
+
+== Usage via the GUI ==
+=== Apdex Calculations ===
+Specify the JMeter results file and your Satisfied Threshold T in seconds (default value is 4s) and hit "Calculate".<br>
+The plugin parses the data and shows the results in a grid, together with their Apdex rating.
+
+[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/apdexcalculator/src/site/img/apdex_Calculate.png Calculate]
+
+If your target threshold is given in milliseconds, then convert it to seconds before entering T. For instance, if you want to check APIs against a threshold of 500ms, enter T as "0.5".
+
+=== Saving the Apdex results ===
+By clicking on the "Save" button, the plugin will copy the Apdex results into a csv file which you can then import into your final test report.
+
+[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/apdexcalculator/src/site/img/wiki/apdex_Save.png SaveTable]
+
+== Usage via Command Line ==
+You can call the Apdex calculator in a script as in the following example:
+
+<code>java -jar {YourJMeterInstall}\lib\cmdrunner-2.2.jar --tool ApdexScoreCalculator --input-file inputfile.jtl --trhld 0.5</code>
+
+Parameters are:
+--input-file: <filenameIn> --trhld <target threshold in seconds>
+
+The tool will save the results of the Apdex computation in a "_ApdexScore.csv" file.
+
+== See also ==
+* [https://en.wikipedia.org/wiki/Apdex Apdex(Wikipedia)]

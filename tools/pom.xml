@@ -11,6 +11,9 @@
 
     <modules>
         <module>outlierdetector</module>
+
+
+        <module>apdexcalculator</module>
     </modules>
 
 </project>
