@@ -11,21 +11,21 @@ Once you have specified the Tolerated threshold, the plugin will compute the Apd
 Download the plugin using the JMeter Plugins Manager.<br>
 Then add the plugin to a Test Plan via the "Add > Non-Test Elements" menu.
 
-[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/apdexcalculator/src/site/img/wiki/apdex_NonTestElement.png NonTestElement]
+[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/apdexcalculator/src/site/img/wiki/apdex_NonTestElement.PNG NonTestElement]
 
 == Usage via the GUI ==
 === Apdex Calculations ===
 Specify the JMeter results file and your Satisfied Threshold T in seconds (default value is 4s) and hit "Calculate".<br>
 The plugin parses the data and shows the results in a grid, together with their Apdex rating.
 
-[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/apdexcalculator/src/site/img/apdex_Calculate.png Calculate]
+[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/apdexcalculator/src/site/img/wiki/apdex_Calculate.PNG Calculate]
 
 If your target threshold is given in milliseconds, then convert it to seconds before entering T. For instance, if you want to check APIs against a threshold of 500ms, enter T as "0.5".
 
 === Saving the Apdex results ===
 By clicking on the "Save" button, the plugin will copy the Apdex results into a csv file which you can then import into your final test report.
 
-[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/apdexcalculator/src/site/img/wiki/apdex_Save.png SaveTable]
+[https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/apdexcalculator/src/site/img/wiki/apdex_Save.PNG SaveTable]
 
 == Usage via Command Line ==
 You can call the Apdex calculator in a script as in the following example:
