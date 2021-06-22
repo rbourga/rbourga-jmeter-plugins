@@ -43,6 +43,7 @@ import org.apache.jmeter.samplers.Clearable;
 import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jmeter.visualizers.gui.AbstractVisualizer;
+import org.apache.jorphan.gui.MinMaxLongRenderer;
 import org.apache.jorphan.gui.NumberRenderer;
 import org.apache.jorphan.gui.RendererUtils;
 import org.slf4j.Logger;
@@ -63,7 +64,7 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 	private static final long serialVersionUID = 1L;
 	private static final Logger oLogger = LoggerFactory.getLogger(ResultsComparatorGui.class);
 	
-	public static final String WIKIPAGE = "https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/resultscomparator/src/site/dat/wiki/ApdexScoreCalculator.wiki";
+	public static final String WIKIPAGE = "https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/resultscomparator/src/site/dat/wiki/ResultsComparator.wiki";
 	
 	// Objects for the File Panels selector
 	private FilePanel oFilePanelA;
@@ -88,6 +89,9 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 	private static HashMap<String, List<SampleResult>> mSampleListA = new HashMap<String, List<SampleResult>>();
 	private static HashMap<String, List<SampleResult>> mSampleListB = new HashMap<String, List<SampleResult>>();
 	private static HashMap<String, ResultsComparatorData> mComparisonResults = new HashMap<String, ResultsComparatorData>();
+	// Variables to store all averages
+	private static ArrayList<Double> mAveragesA = new ArrayList<Double>();
+	private static ArrayList<Double> mAveragesB = new ArrayList<Double>();
 
 	// Table to save some Cohen's d values
 	private static PowerTableModel oPowerTableModel = null;
@@ -96,9 +100,11 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		oPowerTableModel = new PowerTableModel(new String[] { JMeterUtils.getResString("sampler label"), // Label
 				"# Samples A", // # Samples
 				"# Samples B",
+				"Average A", // Averages
+				"Average B",
 				"Cohen's d", // d
-				"Magnitude" // Descriptor
-		}, new Class[] { String.class, Integer.class, Integer.class, Double.class, String.class });
+				"Difference between averages" // Descriptor
+		}, new Class[] { String.class, Integer.class, Integer.class, Double.class, Double.class, Double.class, String.class });
 	}
 
 	// Table for displaying the results of comparison
@@ -249,6 +255,8 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		collector.clearData();
 		mSampleListA.clear();
 		mSampleListB.clear();
+		mAveragesA.clear();
+		mAveragesB.clear();
 		oPowerTableModel.clearData();		
 	}
 
@@ -285,6 +293,8 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		RendererUtils.applyRenderers(oJTable, new TableCellRenderer[] { null, // Label
 				null, // Count A
 				null, // Count B
+				new MinMaxLongRenderer("#0"),	// Mean A
+				new MinMaxLongRenderer("#0"),	// Mean B
 				new NumberRenderer("0.00"), // Cohen's d
 				null }); // Magnitude descriptor
 		// Create the scroll pane and add the table to it
@@ -308,7 +318,9 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		this.getFilePanel().setVisible(false);
 	}
 
-	public int resultsCompare(String sInputFileA, String sInputFileB) {		
+	public int resultsCompare(String sInputFileA, String sInputFileB) {
+		ResultsComparatorMoments _oResultsComparatorMoments = null;
+
 		// Set the listener for when called from ResultsComparatorTool
 		collector.setListener(this);
 		
@@ -336,9 +348,11 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 			_oResultsComparatorData.setCountA(_iNumberOfSamples);
 			if (_iNumberOfSamples >= 2) {
 				// Calculate if at least 2 elements
-				ResultsComparatorMoments _oResultsComparatorMoments = ResultsComparatorMoments.createMoments(_aLabelSamples);
+				_oResultsComparatorMoments = ResultsComparatorMoments.createMomentsFromSamplesList(_aLabelSamples);
 				_oResultsComparatorData.setMeanA(_oResultsComparatorMoments.getMean());
 				_oResultsComparatorData.setVarianceA(_oResultsComparatorMoments.getVariance());
+				// Save this mean for later processing
+				mAveragesA.add(_oResultsComparatorMoments.getMean());
 			}
 			// Add the results of analysis to hashmap for later reference
 			mComparisonResults.put(_sLabelId, _oResultsComparatorData);
@@ -349,13 +363,17 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 			List<SampleResult> _aLabelSamples = mSampleListB.get(_sLabelId);
 			int _iNumberOfSamples = _aLabelSamples.size();
 			// Save stats of these samplers for later comparison
+			if (_iNumberOfSamples >= 2) {
+				// Calculate if at least 2 elements
+				_oResultsComparatorMoments = ResultsComparatorMoments.createMomentsFromSamplesList(_aLabelSamples);
+				// Save this mean for later processing
+				mAveragesB.add(_oResultsComparatorMoments.getMean());
+			}
 			// Is this Sample in the Control file?
 			if (mComparisonResults.containsKey(_sLabelId)) {
 				// Yes: update the Stats				
 				mComparisonResults.get(_sLabelId).setCountB(_iNumberOfSamples);
 				if (_iNumberOfSamples >= 2) {
-					// Calculate if at least 2 elements
-					ResultsComparatorMoments _oResultsComparatorMoments = ResultsComparatorMoments.createMoments(_aLabelSamples);
 					mComparisonResults.get(_sLabelId).setMeanB(_oResultsComparatorMoments.getMean());
 					mComparisonResults.get(_sLabelId).setVarianceB(_oResultsComparatorMoments.getVariance());
 				}
@@ -364,8 +382,6 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 				ResultsComparatorData _oResultsComparatorData = new ResultsComparatorData(_sLabelId);
 				_oResultsComparatorData.setCountB(_iNumberOfSamples);
 				if (_iNumberOfSamples >= 2) {
-					// Calculate if at least 2 elements
-					ResultsComparatorMoments _oResultsComparatorMoments = ResultsComparatorMoments.createMoments(_aLabelSamples);
 					_oResultsComparatorData.setMeanB(_oResultsComparatorMoments.getMean());
 					_oResultsComparatorData.setVarianceB(_oResultsComparatorMoments.getVariance());
 				}
@@ -374,7 +390,7 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 			}
 		};
 		
-		// 4. Finally calculate Cohen's d values for all keys
+		// 4. Calculate Cohen's d values for all keys and set the difference between means
 		for (String _sLabelId : mComparisonResults.keySet() ) {
 			// Only calculate if more than 2 samplers on each side
 			int _iN1 = mComparisonResults.get(_sLabelId).getCountA();
@@ -382,18 +398,46 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 			if ((_iN1 >= 2) && (_iN2 >= 2)) {
 				double _dS1 = mComparisonResults.get(_sLabelId).getVarianceA();
 				double _dS2 = mComparisonResults.get(_sLabelId).getVarianceB();
-
-				// Pooled standard deviation, as per specs
-				double _s = Math.sqrt(((_iN1 - 1) * _dS1 + (_iN2 - 1) * _dS2) / (_iN1 + _iN2 - 2));
-				// Cohen's d, as per specs
+				double _s = ResultsComparatorData.calculatePooledSD(_iN1, _dS1, _iN2, _dS2);
 				double _dX1 = mComparisonResults.get(_sLabelId).getMeanA();
 				double _dX2 = mComparisonResults.get(_sLabelId).getMeanB();
-				double _dcD = (_dX2 - _dX1) / _s;
+				double _dcD = ResultsComparatorData.calculateCohensD(_dX1, _dX2, _s);
 				mComparisonResults.get(_sLabelId).setCohenD(_dcD);
-				
-				//Ici: a faire test de magnitude
+				mComparisonResults.get(_sLabelId).setMeanDifference(_dcD);
 			}
 		}
+		
+		// 5. Add TOTAL line for a global comparison of averages between A and B
+		ResultsComparatorData _oResultsComparatorData = new ResultsComparatorData("TOTAL");
+		int _iN1 = mAveragesA.size();
+		int _iN2 = mAveragesB.size();
+		_oResultsComparatorData.setCountA(_iN1);
+		_oResultsComparatorData.setCountB(_iN2);
+		if (_iN1 >= 2) {
+			_oResultsComparatorMoments = ResultsComparatorMoments.createMomentsFromMeansList(mAveragesA);
+			_oResultsComparatorData.setMeanA(_oResultsComparatorMoments.getMean());
+			_oResultsComparatorData.setVarianceA(_oResultsComparatorMoments.getVariance());
+		}
+		if (_iN2 >= 2) {
+			_oResultsComparatorMoments = ResultsComparatorMoments.createMomentsFromMeansList(mAveragesB);
+			_oResultsComparatorData.setMeanB(_oResultsComparatorMoments.getMean());
+			_oResultsComparatorData.setVarianceB(_oResultsComparatorMoments.getVariance());
+		}
+		if ((_iN1 >= 2) && (_iN2 >= 2)) {
+			double _dS1 = _oResultsComparatorData.getVarianceA();
+			double _dS2 = _oResultsComparatorData.getVarianceB();
+			double _s = ResultsComparatorData.calculatePooledSD(_iN1, _dS1, _iN2, _dS2);
+			double _dX1 = _oResultsComparatorData.getMeanA();
+			double _dX2 = _oResultsComparatorData.getMeanB();
+			double _dcD = ResultsComparatorData.calculateCohensD(_dX1, _dX2, _s);
+			_oResultsComparatorData.setCohenD(_dcD);
+			_oResultsComparatorData.setMeanDifference(_dcD);
+		}
+		// Add the results of analysis to hashmap for later reference
+		mComparisonResults.put("TOTAL", _oResultsComparatorData);
+		
+		// 6. Ici: Update the statistics table
+
 		
 		return 0;
 	}

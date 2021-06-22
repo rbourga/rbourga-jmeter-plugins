@@ -11,7 +11,7 @@ public class ResultsComparatorData {
 	private double _fVarianceA;
 	private double _fVarianceB;
 	private double _fCohenD;
-	private String _sMagnitude;
+	private String _sMeanDifference;
 	
 	// Constructor
 	public ResultsComparatorData(String sLabel) {
@@ -23,7 +23,7 @@ public class ResultsComparatorData {
 		_fVarianceA = 0;
 		_fVarianceB = 0;
 		_fCohenD = 0;
-		_sMagnitude = "";
+		_sMeanDifference = "";
 	}
 	
 	// Methods
@@ -73,8 +73,36 @@ public class ResultsComparatorData {
 		_fCohenD = fCohenD;
 	}
 
-	public void setMagnitude(String sMagnitude) {
-		_sMagnitude = sMagnitude;
+	public void setMeanDifference(double fCohenD) {
+		// 1. Get direction of movement
+		String _sDirection = "";
+		if (fCohenD < 0) _sDirection = "decrease";
+		else if (fCohenD > 0) _sDirection = "increase";
+
+		// 2. Get magnitude of movement according to Sawilowsky's rule of thumb
+		double _fAbsCohenD = Math.abs(fCohenD);
+		String _sMagnitude = "Similar";
+		if (_fAbsCohenD >= 2.0) _sMagnitude = "Huge";
+		else if (_fAbsCohenD >= 1.20) _sMagnitude = "Very large";
+		else if (_fAbsCohenD >= 0.80) _sMagnitude = "Large";
+		else if (_fAbsCohenD >= 0.50) _sMagnitude = "Medium";
+		else if (_fAbsCohenD >= 0.02) _sMagnitude = "Small";
+		else if (_fAbsCohenD >= 0.01) _sMagnitude = "Very small";
+		else if (_fAbsCohenD > 0.0) _sMagnitude = "Negligeable";
+		
+		_sMeanDifference = _sMagnitude + " " + _sDirection;
+	}
+	
+	public static double calculatePooledSD(int n1, double variance1, int n2, double variance2) {
+		// returns Pooled standard deviation, as per specs
+		double _s = Math.sqrt(((n1 - 1) * variance1 + (n2 - 1) * variance2) / (n1 + n2 - 2));
+		return _s;
+	}
+	
+	public static double calculateCohensD(double mean1, double mean2, double pooledSD) {
+		// returns Cohen's d, as per specs
+		double _d = (mean2 - mean1) / pooledSD;
+		return _d;
 	}
 
 }

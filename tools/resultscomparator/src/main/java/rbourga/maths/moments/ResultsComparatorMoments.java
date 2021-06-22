@@ -1,5 +1,6 @@
 package rbourga.maths.moments;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jmeter.samplers.SampleResult;
@@ -30,10 +31,17 @@ public class ResultsComparatorMoments {
 		Variance = variance;
 	}
 
-    public static ResultsComparatorMoments createMoments(List<SampleResult> listSamples) {
+    public static ResultsComparatorMoments createMomentsFromSamplesList(List<SampleResult> listSamples) {
     	//  variance = sum((x_i - mean)^2) / (n - 1)
 		double _dMean = listSamples.stream().mapToLong(SampleResult::getTime).average().orElse(0.0);
-		double _dVariance = listSamples.stream().mapToDouble(SampleResult::getTime).map(p -> Math.pow(p - _dMean, 2)).sum() / listSamples.size();
+		double _dVariance = listSamples.stream().mapToDouble(SampleResult::getTime).map(t -> Math.pow(t - _dMean, 2)).sum() / listSamples.size();
+        return new ResultsComparatorMoments(_dMean, _dVariance);
+    }
+
+    public static ResultsComparatorMoments createMomentsFromMeansList(ArrayList<Double> listMeans) {
+    	//  variance = sum((x_i - mean)^2) / (n - 1)
+		double _dMean = listMeans.stream().mapToDouble(m -> m).average().orElse(0.0);
+		double _dVariance = listMeans.stream().mapToDouble(m -> m).map(m -> Math.pow(m - _dMean, 2)).sum() / listMeans.size();
         return new ResultsComparatorMoments(_dMean, _dVariance);
     }
 
