@@ -20,12 +20,15 @@ import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.DoubleStream;
+import java.util.Map;
+import java.util.TreeMap;
 
 import javax.swing.JButton;
 import javax.swing.JPanel;
@@ -41,6 +44,7 @@ import org.apache.jmeter.gui.util.PowerTableModel;
 import org.apache.jmeter.gui.util.VerticalPanel;
 import org.apache.jmeter.samplers.Clearable;
 import org.apache.jmeter.samplers.SampleResult;
+import org.apache.jmeter.save.CSVSaveService;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jmeter.visualizers.gui.AbstractVisualizer;
 import org.apache.jorphan.gui.MinMaxLongRenderer;
@@ -65,11 +69,15 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 	private static final Logger oLogger = LoggerFactory.getLogger(ResultsComparatorGui.class);
 	
 	public static final String WIKIPAGE = "https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/resultscomparator/src/site/dat/wiki/ResultsComparator.wiki";
+	public static final String AverageOfAverages = "OVERALL AVERAGE";
 	
 	// Objects for the File Panels selector
 	private FilePanel oFilePanelA;
 	private FilePanel oFilePanelB;
 	private String fileSet;
+	public void setFileSet(String sSetName) {
+		fileSet = sSetName;
+	}
 	public FilePanel getInputFilePanelA() {
 		return oFilePanelA;
 	}
@@ -103,8 +111,24 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 				"Average A", // Averages
 				"Average B",
 				"Cohen's d", // d
-				"Difference between averages" // Descriptor
+				"Average Difference" // Descriptor
 		}, new Class[] { String.class, Integer.class, Integer.class, Double.class, Double.class, Double.class, String.class });
+	}
+    public void saveDataModelTable() {
+		// By default, data saved with comma separated values
+		FileWriter _oFileWriter = null;
+    	String _sOutputFile = sInputFileDirectoryNameA + sInputFileBaseNameA + "_CompareStats.csv";
+		try {
+			_oFileWriter = new FileWriter(_sOutputFile);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			CSVSaveService.saveCSVStats(oPowerTableModel, _oFileWriter);
+			_oFileWriter.close();
+		} catch (IOException ioE) {
+			ioE.printStackTrace();
+		}		
 	}
 
 	// Table for displaying the results of comparison
@@ -151,7 +175,6 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 					return;
 				}
 			}
-			
 			sInputFileDirectoryNameA = FilenameUtils.getFullPath(_sInputFileA);
 			sInputFileBaseNameA = FilenameUtils.getBaseName(_sInputFileA);
 
@@ -172,7 +195,7 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 					GuiPackage.showErrorMessage("No samplers found in Control file - please check your file.",
 						"Input file error");
 				}
-			break;
+				break;
 			case -2:
 				if (bUnitTests) {
 					System.out.println(
@@ -181,10 +204,25 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 					GuiPackage.showErrorMessage("No samplers found in Variation file - please check your file.",
 						"Input file error");
 				}
-			break;
-			default:
+				break;
 			}
+			break;
 		case ACTION_SAVE:
+			if (oPowerTableModel.getRowCount() == 0) {
+				if (bUnitTests) {
+					System.out.println("ResultsComparatorGui_ERROR: Data table empty!");
+				} else {
+					GuiPackage.showErrorMessage("Data table empty - please perform Compare before.",
+							"Save Table Data error");
+				}
+				return;
+			}
+			saveDataModelTable();
+			if (bUnitTests) {
+				System.out.println("ResultsComparatorGui_INFO: Stats saved to " + sInputFileBaseNameA + "_CompareStats.csv.");
+			} else {
+				GuiPackage.showInfoMessage("Data saved to " + sInputFileBaseNameA + "_CompareStats.csv.", "Save Table Data");
+			}
 			break;
 		default:
 			if (bUnitTests) {
@@ -257,7 +295,8 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		mSampleListB.clear();
 		mAveragesA.clear();
 		mAveragesB.clear();
-		oPowerTableModel.clearData();		
+		mComparisonResults.clear();
+		oPowerTableModel.clearData();			
 	}
 
 	// Create the GUI
@@ -406,9 +445,22 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 				mComparisonResults.get(_sLabelId).setMeanDifference(_dcD);
 			}
 		}
+
+		// 5. Update the statistics table for the UI in natural order
+		TreeMap<String, ResultsComparatorData> mComparisonResultsSorted = new TreeMap<>(mComparisonResults);
+		for (String _sLabelId : mComparisonResultsSorted.keySet() ) {			
+			Object[] _oArrayRowData = { _sLabelId,
+					mComparisonResultsSorted.get(_sLabelId).getCountA(),
+					mComparisonResultsSorted.get(_sLabelId).getCountB(),
+					Long.valueOf((long)mComparisonResultsSorted.get(_sLabelId).getMeanA()),
+					Long.valueOf((long)mComparisonResultsSorted.get(_sLabelId).getMeanB()),
+					mComparisonResultsSorted.get(_sLabelId).getCohenD().doubleValue(),
+					mComparisonResultsSorted.get(_sLabelId).getMeanDifference() };
+			oPowerTableModel.addRow(_oArrayRowData);
+		}
 		
-		// 5. Add TOTAL line for a global comparison of averages between A and B
-		ResultsComparatorData _oResultsComparatorData = new ResultsComparatorData("TOTAL");
+		// 6. Add last line for a global comparison of averages between A and B
+		ResultsComparatorData _oResultsComparatorData = new ResultsComparatorData(AverageOfAverages);
 		int _iN1 = mAveragesA.size();
 		int _iN2 = mAveragesB.size();
 		_oResultsComparatorData.setCountA(_iN1);
@@ -433,12 +485,19 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 			_oResultsComparatorData.setCohenD(_dcD);
 			_oResultsComparatorData.setMeanDifference(_dcD);
 		}
-		// Add the results of analysis to hashmap for later reference
-		mComparisonResults.put("TOTAL", _oResultsComparatorData);
-		
-		// 6. Ici: Update the statistics table
+		// Add result to statistics table
+		Object[] _oArrayRowData = { AverageOfAverages,
+				_iN1,
+				_iN2,
+				Long.valueOf((long)_oResultsComparatorData.getMeanA()),
+				Long.valueOf((long)_oResultsComparatorData.getMeanB()),
+				_oResultsComparatorData.getCohenD().doubleValue(),
+				_oResultsComparatorData.getMeanDifference() };
+		oPowerTableModel.addRow(_oArrayRowData);
 
-		
+		// Repaint the table
+		oPowerTableModel.fireTableDataChanged();
+
 		return 0;
 	}
 

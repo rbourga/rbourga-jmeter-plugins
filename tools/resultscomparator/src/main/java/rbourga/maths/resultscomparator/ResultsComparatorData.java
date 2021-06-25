@@ -1,5 +1,8 @@
 package rbourga.maths.resultscomparator;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 public class ResultsComparatorData {
 
 	// Fields of this class
@@ -10,7 +13,7 @@ public class ResultsComparatorData {
 	private double _fMeanB;
 	private double _fVarianceA;
 	private double _fVarianceB;
-	private double _fCohenD;
+	private BigDecimal _bdCohenD;
 	private String _sMeanDifference;
 	
 	// Constructor
@@ -22,7 +25,7 @@ public class ResultsComparatorData {
 		_fMeanB = 0;
 		_fVarianceA = 0;
 		_fVarianceB = 0;
-		_fCohenD = 0;
+		_bdCohenD = new BigDecimal(0.00);
 		_sMeanDifference = "";
 	}
 	
@@ -69,10 +72,18 @@ public class ResultsComparatorData {
 		_fVarianceB = fVariance;
 	}
 
+	public BigDecimal getCohenD() {
+		return _bdCohenD;
+	}
 	public void setCohenD(double fCohenD) {
-		_fCohenD = fCohenD;
+		BigDecimal _bdCohenDNotRounded = new BigDecimal((double) Math.abs(fCohenD));
+		// Round to 2 decimal places as per specs
+		_bdCohenD = _bdCohenDNotRounded.setScale(2, RoundingMode.HALF_UP);		
 	}
 
+	public String getMeanDifference() {
+		return _sMeanDifference;
+	}
 	public void setMeanDifference(double fCohenD) {
 		// 1. Get direction of movement
 		String _sDirection = "";
@@ -89,7 +100,6 @@ public class ResultsComparatorData {
 		else if (_fAbsCohenD >= 0.02) _sMagnitude = "Small";
 		else if (_fAbsCohenD >= 0.01) _sMagnitude = "Very small";
 		else if (_fAbsCohenD > 0.0) _sMagnitude = "Negligeable";
-		
 		_sMeanDifference = _sMagnitude + " " + _sDirection;
 	}
 	
