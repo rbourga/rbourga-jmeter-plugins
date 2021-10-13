@@ -29,6 +29,10 @@ The plugin will follow the threshold values as initially suggested by Cohen and 
 | >= 2.0 || Huge
 |}
 
+== Pass / Fail Test ==
+To help in Pass/Fail testing, the plugin lets you specify a threshold that you would not want the Cohen's ''d'' to exceed. Any samplers which have their Cohen's ''d'' greater or equal to this threshold shall be marked as "failed" in the results table.<br>
+The default value of the threshold is 1.2, which corresponds to Sawilosky's "Very large" limit. By changing this value, you can be more or less forgiving.<br>
+
 You can export the results table into a file should you wish to add the magnitude of the mean differences in your test report.
 
 == Setup ==
@@ -38,7 +42,7 @@ Then add the plugin to a Test Plan via the "Add > Non-Test Elements" menu.
 [https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/resultscomparator/src/site/img/wiki/rc_NonTestElement.PNG NonTestElement]
 
 == Calculation of the difference between the means  ==
-Specify the two JMeter results file you want to compare, i.e., the "Control" and "Variation" files and then hit "Compare".<br>
+Change the default Pass/Fail threshold criteria if you wish and than specify the two JMeter results file you want to compare, i.e., the "Control" and "Variation" files and then hit "Compare".<br>
 The plugin will compare the means of the samplers in the Variation file to the ones in the Control file. Comparisons will only take place if there are at least two events per sampler in each file.<br>
 
 To help you gauge the global performance of the two runs, the plugin will also compute Cohen's ''d'' across all averages (i.e., average of averages) and give you an "OVERALL AVERAGE" score.
