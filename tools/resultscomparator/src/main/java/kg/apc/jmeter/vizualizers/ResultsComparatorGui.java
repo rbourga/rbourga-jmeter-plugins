@@ -22,15 +22,18 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.TreeMap;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JFormattedTextField;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -71,6 +74,11 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 	public static final String WIKIPAGE = "https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/resultscomparator/src/site/dat/wiki/ResultsComparator.wiki";
 	public static final String AverageOfAverages = "OVERALL AVERAGE";
 	
+	// Objects for the Cohen Treshold panel
+	private double fCohenThreshold;
+	private JFormattedTextField oJFormattedTextField_CohenThreshold;
+	private final JLabel oJLabel_CohenThresholdSetting = new JLabel("Cohen's d Threshold to not exceed");
+
 	// Objects for the File Panels selector
 	private FilePanel oFilePanelA;
 	private FilePanel oFilePanelB;
@@ -111,8 +119,16 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 				"Average A", // Averages
 				"Average B",
 				"Cohen's d", // d
-				"Average Difference" // Descriptor
-		}, new Class[] { String.class, Integer.class, Integer.class, Double.class, Double.class, Double.class, String.class });
+				"Average Difference", // Descriptor
+				"Failed" // shows a tick if Cohen's d exceeds the specified threshold value
+		}, new Class[] { String.class,
+				Integer.class,
+				Integer.class,
+				Double.class,
+				Double.class,
+				Double.class,
+				String.class,
+				Boolean.class});
 	}
     public void saveDataModelTable() {
 		// By default, data saved with comma separated values
@@ -145,7 +161,18 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		String _sActionCommand = actionEvt.getActionCommand();
 
 		switch (_sActionCommand) {
-		case ACTION_COMPARE:			
+		case ACTION_COMPARE:
+			// Parse Cohen's d threshold
+			fCohenThreshold = ((Number) oJFormattedTextField_CohenThreshold.getValue()).doubleValue();
+			if (fCohenThreshold < 0) {
+				if (bUnitTests) {
+					System.out.println("ResultsComparatorGui_ERROR: Please enter a threshold equal to or greater than 0.");
+				} else {
+					GuiPackage.showErrorMessage("Please enter a threshold equal to or greater than 0.", "Cohen's d Threshold Setting error");
+				}
+				return;
+			}
+
 			// Parse filenames
 			String _sInputFileA = oFilePanelA.getFilename();
 			String _sInputFileB = oFilePanelB.getFilename();
@@ -312,7 +339,19 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		
 		// Create a vertical panel layout scheme to hold the different panels of the UI
 		JPanel _oVerticalPanel = new VerticalPanel();
-
+		
+		// Panel for Failure criteria option
+		JPanel _oJPanelCohenT = new JPanel(new BorderLayout());
+		_oJPanelCohenT.add(oJLabel_CohenThresholdSetting, BorderLayout.WEST);
+		// Create Cohen text field and setup format
+		NumberFormat oNumberFormat_T = NumberFormat.getNumberInstance();
+		oNumberFormat_T.setMaximumFractionDigits(2);
+		oJFormattedTextField_CohenThreshold = new JFormattedTextField(oNumberFormat_T);
+		oJFormattedTextField_CohenThreshold.setValue(1.20); // by default, Very large or more will be marked as failed
+		oJFormattedTextField_CohenThreshold.setColumns(4);
+		_oJPanelCohenT.add(oJFormattedTextField_CohenThreshold);
+		_oJPanelCohenT.setBorder(BorderFactory.createTitledBorder("Failure Criteria Specification"));
+		
 		// Panels for selection of files
 		oFilePanelA = new FilePanel("Control File (A)", EXTS);
 		oFilePanelB = new FilePanel("Variation File (B)", EXTS);
@@ -335,7 +374,8 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 				new MinMaxLongRenderer("#0"),	// Mean A
 				new MinMaxLongRenderer("#0"),	// Mean B
 				new NumberRenderer("0.00"), // Cohen's d
-				null }); // Magnitude descriptor
+				null,                       // Magnitude descriptor
+				null});                    // Pass/Failed indicator
 		// Create the scroll pane and add the table to it
 		JScrollPane _oJScrollPane = new JScrollPane(oJTable);
 
@@ -347,6 +387,7 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		_oJPanelSave.add(_oJButtonSave, BorderLayout.CENTER);
 
 		// Finally, assemble all panels
+		_oVerticalPanel.add(_oJPanelCohenT);
 		_oVerticalPanel.add(oFilePanelA);
 		_oVerticalPanel.add(oFilePanelB);
 		_oVerticalPanel.add(_oJPanelCompare);
@@ -448,14 +489,20 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 
 		// 5. Update the statistics table for the UI in natural order
 		TreeMap<String, ResultsComparatorData> mComparisonResultsSorted = new TreeMap<>(mComparisonResults);
-		for (String _sLabelId : mComparisonResultsSorted.keySet() ) {			
+		for (String _sLabelId : mComparisonResultsSorted.keySet() ) {
+			Boolean _bFailed = false;
+			double _dCd = mComparisonResultsSorted.get(_sLabelId).getCohenD().doubleValue();
+			if (_dCd >=  fCohenThreshold) {
+				_bFailed = true;
+			}
 			Object[] _oArrayRowData = { _sLabelId,
 					mComparisonResultsSorted.get(_sLabelId).getCountA(),
 					mComparisonResultsSorted.get(_sLabelId).getCountB(),
 					Long.valueOf((long)mComparisonResultsSorted.get(_sLabelId).getMeanA()),
 					Long.valueOf((long)mComparisonResultsSorted.get(_sLabelId).getMeanB()),
-					mComparisonResultsSorted.get(_sLabelId).getCohenD().doubleValue(),
-					mComparisonResultsSorted.get(_sLabelId).getMeanDifference() };
+					Math.abs(mComparisonResultsSorted.get(_sLabelId).getCohenD().doubleValue()),
+					mComparisonResultsSorted.get(_sLabelId).getMeanDifference(),
+					_bFailed};
 			oPowerTableModel.addRow(_oArrayRowData);
 		}
 		
@@ -486,13 +533,19 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 			_oResultsComparatorData.setMeanDifference(_dcD);
 		}
 		// Add result to statistics table
+		Boolean _bFailed = false;
+		double _dCd = _oResultsComparatorData.getCohenD().doubleValue();
+		if (_dCd >=  fCohenThreshold) {
+			_bFailed = true;
+		}
 		Object[] _oArrayRowData = { AverageOfAverages,
 				_iN1,
 				_iN2,
 				Long.valueOf((long)_oResultsComparatorData.getMeanA()),
 				Long.valueOf((long)_oResultsComparatorData.getMeanB()),
-				_oResultsComparatorData.getCohenD().doubleValue(),
-				_oResultsComparatorData.getMeanDifference() };
+				Math.abs(_oResultsComparatorData.getCohenD().doubleValue()),
+				_oResultsComparatorData.getMeanDifference(),
+				_bFailed};
 		oPowerTableModel.addRow(_oArrayRowData);
 
 		// Repaint the table

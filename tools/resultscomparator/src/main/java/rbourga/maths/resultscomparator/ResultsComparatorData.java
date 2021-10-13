@@ -30,6 +30,14 @@ public class ResultsComparatorData {
 	}
 	
 	// Methods
+	public String getLabel() {
+		return _sLabel;
+	}
+
+	public void setLabel(String _sLabel) {
+		this._sLabel = _sLabel;
+	}
+
 	public int getCountA() {
 		return _iCountA;
 	}
@@ -76,7 +84,8 @@ public class ResultsComparatorData {
 		return _bdCohenD;
 	}
 	public void setCohenD(double fCohenD) {
-		BigDecimal _bdCohenDNotRounded = new BigDecimal((double) Math.abs(fCohenD));
+		// BigDecimal _bdCohenDNotRounded = new BigDecimal((double) Math.abs(fCohenD));
+		BigDecimal _bdCohenDNotRounded = new BigDecimal((double) fCohenD);
 		// Round to 2 decimal places as per specs
 		_bdCohenD = _bdCohenDNotRounded.setScale(2, RoundingMode.HALF_UP);		
 	}
