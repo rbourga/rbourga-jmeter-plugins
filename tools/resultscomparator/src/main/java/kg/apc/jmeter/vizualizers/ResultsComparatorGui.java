@@ -53,6 +53,8 @@ import org.apache.jmeter.visualizers.gui.AbstractVisualizer;
 import org.apache.jorphan.gui.MinMaxLongRenderer;
 import org.apache.jorphan.gui.NumberRenderer;
 import org.apache.jorphan.gui.RendererUtils;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +77,6 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 	public static final String AverageOfAverages = "OVERALL AVERAGE";
 	
 	// Objects for the Cohen Treshold panel
-	private double fCohenThreshold;
 	private JFormattedTextField oJFormattedTextField_CohenThreshold;
 	private final JLabel oJLabel_CohenThresholdSetting = new JLabel("Cohen's d Threshold to not exceed");
 
@@ -93,8 +94,8 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		return oFilePanelB;
 	}
 	// File extensions that are authorized in the File Panel filter
-	private static String sInputFileDirectoryNameA; 
-	private static String sInputFileBaseNameA;
+	private static String sInputFileDirectoryNameB; 
+	private static String sInputFileBaseNameB;
 	private static final String[] EXTS = { ".jtl", ".csv", ".tsv" };
 	
 	// Strings associated with the actions of the control buttons in the UI
@@ -130,10 +131,11 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 				String.class,
 				Boolean.class});
 	}
-    public void saveDataModelTable() {
+	private int iFailedClnNbr = 7;
+    public void saveDataModelTableAsCsv() {
 		// By default, data saved with comma separated values
 		FileWriter _oFileWriter = null;
-    	String _sOutputFile = sInputFileDirectoryNameA + sInputFileBaseNameA + "_CompareStats.csv";
+    	String _sOutputFile = sInputFileDirectoryNameB + sInputFileBaseNameB + "_CompareStats.csv";
 		try {
 			_oFileWriter = new FileWriter(_sOutputFile);
 		} catch (IOException e1) {
@@ -141,6 +143,61 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		}
 		try {
 			CSVSaveService.saveCSVStats(oPowerTableModel, _oFileWriter);
+			_oFileWriter.close();
+		} catch (IOException ioE) {
+			ioE.printStackTrace();
+		}		
+	}
+    public void saveDataModelTableAsHtml() {
+		// Saves comparison results in an HTML file for import in DevOps tool later on
+		FileWriter _oFileWriter = null;
+    	String _sOutputFile = sInputFileDirectoryNameB + sInputFileBaseNameB + "_CompareStats.html";
+		try {
+			_oFileWriter = new FileWriter(_sOutputFile);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			Document _dHtmlOutput = Document.createShell("");
+			Element _body = _dHtmlOutput.body();
+			// 1. Add the table
+			Element _table = _body.appendElement("table border");
+			_table.append("<caption>Baseline Comparison Results</caption>");
+			// 2. Write the table headers
+			Element _trh = _dHtmlOutput.createElement("tr");
+			int _colCnt = oPowerTableModel.getColumnCount();
+			for (int i = 0; i < _colCnt; i++)
+			{
+				Element _th = _dHtmlOutput.createElement("th");
+				_th.text(oPowerTableModel.getColumnName(i));
+				_trh.appendChild(_th);
+			}
+			_table.appendChild(_trh);
+			// 3. Write the data rows
+			int _rowCnt = oPowerTableModel.getRowCount();
+			Element _trd = null;
+			for (int i = 0; i < _rowCnt; i++)
+			{
+				// Highlight the row if failed
+				if ((boolean) oPowerTableModel.getValueAt(i, iFailedClnNbr))
+				{
+					_trd = _dHtmlOutput.createElement("tr style=\"background-color: orange\"");
+				}
+				else
+				{
+					_trd = _dHtmlOutput.createElement("tr style=\"background-color: lawngreen\"");
+				}
+				for (int j = 0; j < _colCnt; j++)
+				{
+					Element _td = _dHtmlOutput.createElement("td");	
+					_td.text(oPowerTableModel.getValueAt(i,j).toString());
+					_trd.appendChild(_td);
+				}
+				_table.appendChild(_trd);
+			}
+			// Format output with each element treated as a block
+			//_dHtmlOutput.outputSettings().outline(true);
+			_oFileWriter.write(_dHtmlOutput.toString());
 			_oFileWriter.close();
 		} catch (IOException ioE) {
 			ioE.printStackTrace();
@@ -162,9 +219,10 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 
 		switch (_sActionCommand) {
 		case ACTION_COMPARE:
+			double _fCohenThreshold;
 			// Parse Cohen's d threshold
-			fCohenThreshold = ((Number) oJFormattedTextField_CohenThreshold.getValue()).doubleValue();
-			if (fCohenThreshold < 0) {
+			_fCohenThreshold = ((Number) oJFormattedTextField_CohenThreshold.getValue()).doubleValue();
+			if (_fCohenThreshold < 0) {
 				if (bUnitTests) {
 					System.out.println("ResultsComparatorGui_ERROR: Please enter a threshold equal to or greater than 0.");
 				} else {
@@ -202,8 +260,6 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 					return;
 				}
 			}
-			sInputFileDirectoryNameA = FilenameUtils.getFullPath(_sInputFileA);
-			sInputFileBaseNameA = FilenameUtils.getBaseName(_sInputFileA);
 
 			// Clear any comparisons from a previous analysis
 			// Not called in unit tests so that test data remains for the testing
@@ -212,7 +268,7 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 			}
 			
 			// Now, compare the data
-			int _iCompareResult = resultsCompare(_sInputFileA, _sInputFileB);
+			int _iCompareResult = resultsCompare(_sInputFileA, _sInputFileB, _fCohenThreshold);
 			switch (_iCompareResult) {
 			case -1:
 				if (bUnitTests) {
@@ -244,11 +300,11 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 				}
 				return;
 			}
-			saveDataModelTable();
+			saveDataModelTableAsCsv();
 			if (bUnitTests) {
-				System.out.println("ResultsComparatorGui_INFO: Stats saved to " + sInputFileBaseNameA + "_CompareStats.csv.");
+				System.out.println("ResultsComparatorGui_INFO: Stats saved to " + sInputFileBaseNameB + "_CompareStats.csv.");
 			} else {
-				GuiPackage.showInfoMessage("Data saved to " + sInputFileBaseNameA + "_CompareStats.csv.", "Save Table Data");
+				GuiPackage.showInfoMessage("Data saved to " + sInputFileBaseNameB + "_CompareStats.csv.", "Save Table Data");
 			}
 			break;
 		default:
@@ -398,8 +454,11 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		this.getFilePanel().setVisible(false);
 	}
 
-	public int resultsCompare(String sInputFileA, String sInputFileB) {
+	public int resultsCompare(String sInputFileA, String sInputFileB, double fThld) {
 		ResultsComparatorMoments _oResultsComparatorMoments = null;
+
+		sInputFileDirectoryNameB = FilenameUtils.getFullPath(sInputFileB);
+		sInputFileBaseNameB = FilenameUtils.getBaseName(sInputFileB);
 
 		// Set the listener for when called from ResultsComparatorTool
 		collector.setListener(this);
@@ -489,11 +548,13 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 
 		// 5. Update the statistics table for the UI in natural order
 		TreeMap<String, ResultsComparatorData> mComparisonResultsSorted = new TreeMap<>(mComparisonResults);
+		int _iNbOfFailedElements = 0;
 		for (String _sLabelId : mComparisonResultsSorted.keySet() ) {
 			Boolean _bFailed = false;
 			double _dCd = mComparisonResultsSorted.get(_sLabelId).getCohenD().doubleValue();
-			if (_dCd >=  fCohenThreshold) {
+			if (_dCd >=  fThld) {
 				_bFailed = true;
+				_iNbOfFailedElements++;
 			}
 			Object[] _oArrayRowData = { _sLabelId,
 					mComparisonResultsSorted.get(_sLabelId).getCountA(),
@@ -535,8 +596,9 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		// Add result to statistics table
 		Boolean _bFailed = false;
 		double _dCd = _oResultsComparatorData.getCohenD().doubleValue();
-		if (_dCd >=  fCohenThreshold) {
+		if (_dCd >=  fThld) {
 			_bFailed = true;
+			_iNbOfFailedElements++;
 		}
 		Object[] _oArrayRowData = { AverageOfAverages,
 				_iN1,
@@ -551,7 +613,7 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		// Repaint the table
 		oPowerTableModel.fireTableDataChanged();
 
-		return 0;
+		return _iNbOfFailedElements;
 	}
 
 }
