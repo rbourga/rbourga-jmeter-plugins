@@ -53,14 +53,14 @@ import org.apache.jmeter.visualizers.gui.AbstractVisualizer;
 import org.apache.jorphan.gui.MinMaxLongRenderer;
 import org.apache.jorphan.gui.NumberRenderer;
 import org.apache.jorphan.gui.RendererUtils;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kg.apc.jmeter.JMeterPluginsUtils;
+import rbourga.common.HTMLSaveService;
 import rbourga.maths.moments.ResultsComparatorMoments;
 import rbourga.maths.resultscomparator.ResultsComparatorData;
+
 
 /**
  * Compares response times of samplers using Cohen's d effect size
@@ -158,46 +158,7 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 			e1.printStackTrace();
 		}
 		try {
-			Document _dHtmlOutput = Document.createShell("");
-			Element _body = _dHtmlOutput.body();
-			// 1. Add the table
-			Element _table = _body.appendElement("table border");
-			_table.append("<caption>Baseline Comparison Results</caption>");
-			// 2. Write the table headers
-			Element _trh = _dHtmlOutput.createElement("tr");
-			int _colCnt = oPowerTableModel.getColumnCount();
-			for (int i = 0; i < _colCnt; i++)
-			{
-				Element _th = _dHtmlOutput.createElement("th");
-				_th.text(oPowerTableModel.getColumnName(i));
-				_trh.appendChild(_th);
-			}
-			_table.appendChild(_trh);
-			// 3. Write the data rows
-			int _rowCnt = oPowerTableModel.getRowCount();
-			Element _trd = null;
-			for (int i = 0; i < _rowCnt; i++)
-			{
-				// Highlight the row if failed
-				if ((boolean) oPowerTableModel.getValueAt(i, iFailedClnNbr))
-				{
-					_trd = _dHtmlOutput.createElement("tr style=\"background-color: orange\"");
-				}
-				else
-				{
-					_trd = _dHtmlOutput.createElement("tr style=\"background-color: lawngreen\"");
-				}
-				for (int j = 0; j < _colCnt; j++)
-				{
-					Element _td = _dHtmlOutput.createElement("td");	
-					_td.text(oPowerTableModel.getValueAt(i,j).toString());
-					_trd.appendChild(_td);
-				}
-				_table.appendChild(_trd);
-			}
-			// Format output with each element treated as a block
-			//_dHtmlOutput.outputSettings().outline(true);
-			_oFileWriter.write(_dHtmlOutput.toString());
+			HTMLSaveService.saveHTMLtable("Baseline Comparison Results", oPowerTableModel, _oFileWriter, iFailedClnNbr);
 			_oFileWriter.close();
 		} catch (IOException ioE) {
 			ioE.printStackTrace();

@@ -10,11 +10,11 @@
     <packaging>pom</packaging>
 
     <modules>
+        
         <module>outlierdetector</module>
-
-
         <module>apdexcalculator</module>
         <module>resultscomparator</module>
+        <module>Common</module>
     </modules>
 
 </project>
