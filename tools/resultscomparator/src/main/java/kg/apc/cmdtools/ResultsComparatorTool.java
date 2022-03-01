@@ -109,7 +109,7 @@ public class ResultsComparatorTool extends AbstractCMDTool {
 			break;
 		default:
 			// Export results to html
-			_oResultsComparatorGui.saveDataModelTableAsHtml();
+			_oResultsComparatorGui.saveDataModelTableAsHtml(_sDThld);
 			System.out.println("Performance worsened for " + _iCompareResult + " elements.");
 		}
 		return _iCompareResult;

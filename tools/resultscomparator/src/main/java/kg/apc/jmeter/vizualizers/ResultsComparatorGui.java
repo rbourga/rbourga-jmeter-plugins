@@ -148,7 +148,7 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 			ioE.printStackTrace();
 		}		
 	}
-    public void saveDataModelTableAsHtml() {
+    public void saveDataModelTableAsHtml(String sDThld) {
 		// Saves comparison results in an HTML file for import in DevOps tool later on
 		FileWriter _oFileWriter = null;
     	String _sOutputFile = sInputFileDirectoryNameB + sInputFileBaseNameB + "_CompareStats.html";
@@ -158,7 +158,7 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 			e1.printStackTrace();
 		}
 		try {
-			HTMLSaveService.saveHTMLtable("Baseline Comparison Results", oPowerTableModel, _oFileWriter, iFailedClnNbr);
+			HTMLSaveService.saveHTMLtable("Baseline Comparison Results (max. d: " + sDThld + ")", oPowerTableModel, _oFileWriter, iFailedClnNbr);
 			_oFileWriter.close();
 		} catch (IOException ioE) {
 			ioE.printStackTrace();
