@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.PrintStream;
 import java.util.ListIterator;
 
+import org.apache.commons.lang3.math.NumberUtils;
+
 import kg.apc.cmd.UniversalRunner;
 import kg.apc.jmeter.JMeterPluginsUtils;
 import kg.apc.jmeter.vizualizers.RightTailOutlierDetectorGui;
@@ -35,8 +37,9 @@ public class RightTailOutlierDetectorTool extends AbstractCMDTool {
 	
 	@Override
 	protected void showHelp(PrintStream os) {
-		os.println("Options for tool 'RightTailOutlierDetector': --input-file <filenameIn>"
-				+ "--tukey-k <K value (1.5 or 3)>");
+		os.println("Options for tool 'RightTailOutlierDetector': --input-file <filenameIn> "
+				+ "--tukey-k <K value (1.5 or 3)> "
+				+ "--max-trim-pct <max trimmng percentage to pass (between 0 and 1)>");		
 	}	
 
 	@Override
@@ -46,6 +49,7 @@ public class RightTailOutlierDetectorTool extends AbstractCMDTool {
 		 */
 		String _sInputFile = null;
 		String _sTukeyK = null;
+		String _sMaxTrimPct = null;
 
 		if (!args.hasNext()) {
 			showHelp(System.out);
@@ -65,6 +69,11 @@ public class RightTailOutlierDetectorTool extends AbstractCMDTool {
 					throw new IllegalArgumentException("Missing constant K value.");
 				}
 				_sTukeyK = ((String) args.next());
+			} else if (arg.equalsIgnoreCase("--max-trim-pct")) {
+				if (!args.hasNext()) {
+					throw new IllegalArgumentException("Missing maximum trim percentage value.");
+				}
+				_sMaxTrimPct = ((String) args.next());
 			}
 		}
 
@@ -81,26 +90,27 @@ public class RightTailOutlierDetectorTool extends AbstractCMDTool {
 		if (!(_sTukeyK.equals("1.5")) && !(_sTukeyK.equals("3")) && !(_sTukeyK.equals("3.0"))) {
 			throw new IllegalArgumentException("Invalid K value (only 1.5 or 3 accepted)");
 		}
+		if (_sMaxTrimPct == null) {
+			throw new IllegalArgumentException("Missing max trim percentage value.");
+		}
+		if (!(NumberUtils.isCreatable(_sMaxTrimPct))) {
+			throw new IllegalArgumentException("Invalid max trim percentage value.");
+		}
+		if ((Double.parseDouble(_sMaxTrimPct) < 0) || (Double.parseDouble(_sMaxTrimPct) > 1)) {
+			throw new IllegalArgumentException("Max trim percentage needs to be between 0 and 1.");			
+		}
 
 		// Do the job:
 		RightTailOutlierDetectorGui _oRightTailOutlierDetectorGui = new RightTailOutlierDetectorGui();
 		_oRightTailOutlierDetectorGui.createDataModelTable();
-		int _iTrimResult = _oRightTailOutlierDetectorGui.outlierDetection(_sInputFile, Double.parseDouble(_sTukeyK));
-
+		int _iTrimResult = _oRightTailOutlierDetectorGui.outlierDetection(_sInputFile, Double.parseDouble(_sTukeyK), Double.parseDouble(_sMaxTrimPct));
 		// Process the results
-		System.out.println("RightTailOutlierDetectorTool: " + _iTrimResult);
-		switch (_iTrimResult) {
-		case -1:
+		if (_iTrimResult == -1) {
 			System.out.println("No samplers found in input file - please check your file.");
-			break;
-		case 0:
-			System.out.println("No outliers found in the right tail.");
-			break;
-		default:
-			_oRightTailOutlierDetectorGui.saveDataModelTable();
-			System.out.println(_iTrimResult + " outliers found in the right tail.\n" + "Refer to the _Outliers and _Trimmed files.");
-			System.out.println("Trimming stats saved to _TrimSummary.csv file.");
+		} else {
+			_oRightTailOutlierDetectorGui.saveDataModelTableAsHtml(_sMaxTrimPct);
+			System.out.println(_iTrimResult + " elements above max trim threshold.");
 		}
-		return 0;
+		return _iTrimResult;
 	}
 }

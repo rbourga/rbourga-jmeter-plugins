@@ -60,6 +60,7 @@ import org.slf4j.LoggerFactory;
 
 import kg.apc.jmeter.JMeterPluginsUtils;
 import rbourga.apdex.logic.ApdexLogic;
+import rbourga.common.HTMLSaveService;
 
 /**
  * Calculates the Apdex score of samplers
@@ -78,7 +79,9 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 	
 	// Objects for the Apdex panel
 	private JFormattedTextField oJFormattedTextField_ApdexSatisfiedThreshold;
-	private final JLabel oJLabel_ApdexThresholdSetting = new JLabel("Target Threshold T (in seconds):");
+	private final JLabel oJLabel_ApdexThresholdSetting = new JLabel("Target Threshold T (in seconds) ");
+	private JFormattedTextField oJFormattedTextField_ApdexMinScore;
+	private final JLabel oJLabel_ApdexMinScore = new JLabel("Minimum Score [0..1] ");
 
 	// Objects for the File Panel selector
 	private FilePanel oFilePanel;
@@ -111,7 +114,8 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 				"Apdex Value",
 				"T", // Target threshold
 				"Rating",
-				"Small Group" // shows a tick if number of samples < 100
+				"Small Group", // shows a tick if number of samples < 100
+				"Failed" // shows a tick if value less than the specified threshold
 		}, new Class[] { String.class,
 				Integer.class,
 				Double.class, 
@@ -121,9 +125,11 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 				Double.class,
 				Double.class,
 				String.class,
+				Boolean.class,
 				Boolean.class});
 	}
-    public void saveDataModelTable() {
+	private int iFailedClnNbr = 10;
+    public void saveDataModelTableAsCsv() {
 		// By default, data saved with comma separated values
 		FileWriter _oFileWriter = null;
     	String _sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_ApdexScore.csv";
@@ -138,6 +144,22 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 		} catch (IOException ioE) {
 			ioE.printStackTrace();
 		}		
+	}
+    public void saveDataModelTableAsHtml(String sMinScore) {
+		// Saves Apdex results in an HTML file for import in DevOps tool later on
+		FileWriter _oFileWriter = null;
+		String _sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_ApdexScore.html";
+		try {
+			_oFileWriter = new FileWriter(_sOutputFile);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			HTMLSaveService.saveHTMLtable("Apdex Score Results (accepted min score: " + sMinScore + ")", oPowerTableModel, _oFileWriter, iFailedClnNbr);
+			_oFileWriter.close();
+		} catch (IOException ioE) {
+			ioE.printStackTrace();
+		}
 	}
     
 	// Used only in unit tests
@@ -218,18 +240,30 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 		// Create a vertical panel layout scheme to hold the different panels of the UI
 		JPanel _oVerticalPanel = new VerticalPanel();
 		
-		// Panel for Apdex options
+		// Panel for Apdex option
 		JPanel _oJPanelApdex = new JPanel(new BorderLayout());
-		_oJPanelApdex.add(oJLabel_ApdexThresholdSetting, BorderLayout.WEST);
-		// Create Apdex text field and setup format
 		NumberFormat oNumberFormat_T = NumberFormat.getNumberInstance();
 		oNumberFormat_T.setMaximumFractionDigits(1);
+		// Create Apdex Target text field and setup format
+		_oJPanelApdex.add(oJLabel_ApdexThresholdSetting, BorderLayout.WEST);
 		oJFormattedTextField_ApdexSatisfiedThreshold = new JFormattedTextField(oNumberFormat_T);
 		oJFormattedTextField_ApdexSatisfiedThreshold.setValue(4); // by default, 4s as per Apdex specs
 		oJFormattedTextField_ApdexSatisfiedThreshold.setColumns(4);
 		_oJPanelApdex.add(oJFormattedTextField_ApdexSatisfiedThreshold);
 		_oJPanelApdex.setBorder(BorderFactory.createTitledBorder("Apdex Calculation Inputs"));
-		
+
+		// Panel for Failure criteria option
+		JPanel _oJPanelFail = new JPanel(new BorderLayout());
+		NumberFormat oNumberFormat_MinScore = NumberFormat.getNumberInstance();
+		oNumberFormat_MinScore.setMaximumFractionDigits(2);
+		// Create Apdex Pass/Fail text field and setup format
+		_oJPanelFail.add(oJLabel_ApdexMinScore, BorderLayout.WEST);
+		oJFormattedTextField_ApdexMinScore = new JFormattedTextField(oNumberFormat_MinScore);
+		oJFormattedTextField_ApdexMinScore.setValue(0.85); // by default, "good" rating
+		oJFormattedTextField_ApdexMinScore.setColumns(4);
+		_oJPanelFail.add(oJFormattedTextField_ApdexMinScore);
+		_oJPanelFail.setBorder(BorderFactory.createTitledBorder("Failure Criteria Specification"));
+
 		// Panel for selection of file
 		oFilePanel = new FilePanel("Read results from file and Calculate Apdex score", EXTS);
 		
@@ -253,7 +287,8 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 				new MinMaxLongRenderer("#0"),	// Error
 				new NumberRenderer("0.00"),		// Apdex score
 				new NumberRenderer("0.00"),		// Threshold
-				null }); // Low Sample indicator
+				null, // Low Sample indicator
+				null }); // Pass/Failed indicator
 		// Create the scroll pane and add the table to it
 		JScrollPane _oJScrollPane = new JScrollPane(oJTable);
 
@@ -266,6 +301,7 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 
 		// Finally, assemble all panels
 		_oVerticalPanel.add(_oJPanelApdex);
+		_oVerticalPanel.add(_oJPanelFail);
 		_oVerticalPanel.add(oFilePanel);
 		_oVerticalPanel.add(_oJPanelCalculate);
 		_oVerticalPanel.add(_oJScrollPane);
@@ -276,6 +312,7 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 	}
 
 	public void actionPerformed(ActionEvent actionEvt) {
+		double _fApdexMinScore;
 		String _sActionCommand = actionEvt.getActionCommand();
 		
 		switch (_sActionCommand) {
@@ -286,12 +323,23 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 				if (bUnitTests) {
 					System.out.println("ApdexScoreCalculatorGui_ERROR: Please enter a threshold equal to or greater than 0.1.");
 				} else {
-					GuiPackage.showErrorMessage("Please enter a threshold equal to or greater than 0.1.", "Apdex Threshold Setting error");
+					GuiPackage.showErrorMessage("Please enter a target threshold equal to or greater than 0.1.", "Apdex Threshold Setting error");
 				}
 				return;
 			}
 			// Format the threshold as per Apdex specs
 			_fTargetThreshold_T = oApdexLogic.formatThreshold(_fTargetThreshold_T);
+
+			// Parse Apdex score
+			_fApdexMinScore = ((Number) oJFormattedTextField_ApdexMinScore.getValue()).doubleValue();
+			if ((_fApdexMinScore < 0) || (_fApdexMinScore > 1)) {
+				if (bUnitTests) {
+					System.out.println("ApdexScoreCalculatorGui_ERROR: Please enter a min score between 0 and 1.");
+				} else {
+					GuiPackage.showErrorMessage("Please enter a minimum score between 0 and 1.", "Apdex Score Setting error");
+				}
+				return;
+			}
 						
 			// Parse filename
 			String _sInputFile = oFilePanel.getFilename();
@@ -309,8 +357,6 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 					return;
 				}
 			}
-			sInputFileDirectoryName = FilenameUtils.getFullPath(_sInputFile);
-			sInputFileBaseName = FilenameUtils.getBaseName(_sInputFile);
 
 			// Clear any statistics from a previous analysis
 			// Not called in unit tests so that test data remains for the testing
@@ -319,8 +365,8 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 			}
 
 			// Now, process the data
-			boolean _bApdexResult = computeApdex(_sInputFile, _fTargetThreshold_T);
-			if (!_bApdexResult) {
+			int _iApdexResult = computeApdex(_sInputFile, _fTargetThreshold_T, _fApdexMinScore);
+			if (_iApdexResult == -1) {
 				if (bUnitTests) {
 					System.out.println(
 							"ApdexScoreCalculatorGui_ERROR: No samplers found - please give some samplers!");
@@ -340,7 +386,7 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 				}
 				return;
 			}
-			saveDataModelTable();
+			saveDataModelTableAsCsv();
 			if (bUnitTests) {
 				System.out.println("ApdexScoreCalculatorGui_INFO: Stats saved to " + sInputFileBaseName + "_ApdexScore.csv.");
 			} else {
@@ -356,19 +402,24 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 		}
 	}
 	
-	public boolean computeApdex(String sInputFile, double fSatisfiedTargetSec) {
+	public int computeApdex(String sInputFile, double fSatisfiedTargetSec, double fApdexMinScore) {
+		sInputFileDirectoryName = FilenameUtils.getFullPath(sInputFile);
+		sInputFileBaseName = FilenameUtils.getBaseName(sInputFile);
+
 		// Load the data file using the default collector provided by the AbstractVisualizer class
 		collector.setFilename(sInputFile);
 		// Set the listener for when called from the DetectorTool
 		collector.setListener(this);
 		collector.loadExistingFile();
 		if (mSampleList.isEmpty()) {
-			return false; // Nothing to load, so abort...
+			return -1; // Nothing to load, so abort...
 		}
 		
 		// Now process the data points
 		long _lSatisfiedThresholdMS = (long) (fSatisfiedTargetSec * 1000);	// Convert to ms as JMeter times are stored in ms
 		long _lToleratedThresholdMS = 4 * _lSatisfiedThresholdMS;	// 4xTarget, as per Apdex specs
+		BigDecimal _bdApdexMinScore = new BigDecimal(fApdexMinScore);
+		int _iNbOfFailedElements = 0;
 		for (String _sLabelId : mSampleList.keySet()) {
 			List<SampleResult> _aLabelSamples = mSampleList.get(_sLabelId);
 			int _iTotalSamples = _aLabelSamples.size();
@@ -397,13 +448,18 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 			BigDecimal _bdApdexScoreRounded = new BigDecimal(0.00);
 			_bdApdexScoreRounded = _bdApdexScore.setScale(2, RoundingMode.HALF_UP);
 			
-			// Set Rating as per Apdex sppecs
+			// Set Rating as per Apdex specs
 			String _sRating = oApdexLogic.setRating(_bdApdexScoreRounded);
 
 			// Update the statistics table
 			Boolean _bSmallGroup = false;
 			if (_iTotalSamples < 100) {
 				_bSmallGroup = true;
+			}
+			Boolean _bFailed = false;
+			if (_bdApdexScoreRounded.compareTo(_bdApdexMinScore) == -1) {
+				_bFailed = true;
+				_iNbOfFailedElements++;
 			}
 			Object[] _oArrayRowData = { _sLabelId,
 					_iTotalSamples,
@@ -414,13 +470,14 @@ public class ApdexScoreCalculatorGui extends AbstractVisualizer implements Actio
 					_bdApdexScoreRounded.doubleValue(),
 					fSatisfiedTargetSec,
 					_sRating,
-					_bSmallGroup };
+					_bSmallGroup,
+					_bFailed };
 			oPowerTableModel.addRow(_oArrayRowData);
 		}
 		
 		// Repaint the table
 		oPowerTableModel.fireTableDataChanged();
-		return true;
+		return _iNbOfFailedElements;
 	}
 
 }

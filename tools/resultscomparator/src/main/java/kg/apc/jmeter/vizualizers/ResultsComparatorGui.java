@@ -78,7 +78,7 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 	
 	// Objects for the Cohen Treshold panel
 	private JFormattedTextField oJFormattedTextField_CohenThreshold;
-	private final JLabel oJLabel_CohenThresholdSetting = new JLabel("Cohen's d Threshold to not exceed");
+	private final JLabel oJLabel_CohenThresholdSetting = new JLabel("Cohen's d Threshold to not exceed ");
 
 	// Objects for the File Panels selector
 	private FilePanel oFilePanelA;
@@ -358,16 +358,16 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		JPanel _oVerticalPanel = new VerticalPanel();
 		
 		// Panel for Failure criteria option
-		JPanel _oJPanelCohenT = new JPanel(new BorderLayout());
-		_oJPanelCohenT.add(oJLabel_CohenThresholdSetting, BorderLayout.WEST);
+		JPanel _oJPanelFail = new JPanel(new BorderLayout());
+		_oJPanelFail.add(oJLabel_CohenThresholdSetting, BorderLayout.WEST);
 		// Create Cohen text field and setup format
 		NumberFormat oNumberFormat_T = NumberFormat.getNumberInstance();
 		oNumberFormat_T.setMaximumFractionDigits(2);
 		oJFormattedTextField_CohenThreshold = new JFormattedTextField(oNumberFormat_T);
 		oJFormattedTextField_CohenThreshold.setValue(1.20); // by default, Very large or more will be marked as failed
 		oJFormattedTextField_CohenThreshold.setColumns(4);
-		_oJPanelCohenT.add(oJFormattedTextField_CohenThreshold);
-		_oJPanelCohenT.setBorder(BorderFactory.createTitledBorder("Failure Criteria Specification"));
+		_oJPanelFail.add(oJFormattedTextField_CohenThreshold);
+		_oJPanelFail.setBorder(BorderFactory.createTitledBorder("Failure Criteria Specification"));
 		
 		// Panels for selection of files
 		oFilePanelA = new FilePanel("Control File (A)", EXTS);
@@ -404,7 +404,7 @@ public class ResultsComparatorGui extends AbstractVisualizer implements ActionLi
 		_oJPanelSave.add(_oJButtonSave, BorderLayout.CENTER);
 
 		// Finally, assemble all panels
-		_oVerticalPanel.add(_oJPanelCohenT);
+		_oVerticalPanel.add(_oJPanelFail);
 		_oVerticalPanel.add(oFilePanelA);
 		_oVerticalPanel.add(oFilePanelB);
 		_oVerticalPanel.add(_oJPanelCompare);

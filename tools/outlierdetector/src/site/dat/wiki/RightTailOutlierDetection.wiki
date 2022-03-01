@@ -1,26 +1,28 @@
 = Right Tail Outlier Detector =
-Experience shows that often, in performance testing, you may have a number of data points whose elapsed times are significantly higher than your normal observations. When you use these results to generate your statistics, you will get statistical values "skewed to the right" and which do not represent the real picture of the application you tested. 
-
-The reasons as to why some data points are much slower than others are usually independent from the application under test and due to environmental issues such as ad-hoc network issues, jobs or tasks kicking off on the server under test in the middle of your test such as IIS Application Pool Recycles, Garbage Collection etc.
-
-This plugin acts as a "low-pass filter": it will parse the results of your test and discard the data at the top end so that when you use the "cleansed" data for your statistics, you will have a truer and more consistent picture of the application under test.
+Experience shows that often, in performance testing, you may have a number of data points whose elapsed times are significantly higher than your normal observations. When you use these results to generate your statistics, you will get statistical values "skewed to the right" and which do not represent the real picture of the application you tested.<br> 
+The reasons as to why some data points are much slower than others are usually independent from the application under test and due to environmental issues such as ad-hoc network issues, jobs or tasks kicking off on the server under test in the middle of your test such as IIS Application Pool Recycles, Garbage Collection etc.<br>
+This plugin acts as a "low-pass filter": it will parse the results of your test and discard the data at the top end so that when you use the "cleansed" data for your statistics, you will have a truer and more consistent picture of the application under test. The tool does not touch the samplers at the lower end of the distribution.
 
 [https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/outlierdetector/src/site/img/wiki/rtod_Principle.jpg Principle]
 
-The plugin will find the upper bounds of the samples by itself using Tukey's technique and provides you with two options for the Tukey K parameter: you can either be very severe and remove all outliers by selecting K = 1.5, or be less stringent and remove only the far out values with K = 3.
+The plugin will find the upper bounds of the samples by itself using Tukey's technique and provides you with two options for the Tukey K parameter: you can either be very severe and remove all outliers by selecting K = 1.5, or be less stringent and remove only the far out values with K = 3.<br>
+It will save the trimmed results and the outliers in two separate files. You can then use the trimmed results file for your performance analysis; you may also review the list of outliers to check for any potential issues.
 
-The plugin will save the trimmed results and the outliers in two separate files. You can then use the trimmed results file for your performance analysis; you may also review the list of outliers to check for any potential issues.
-
-Finally, the upper bounds and the number of omitted samplers are displayed in a table which you can export should you wish to document the truncation process in your test report.
+Finally, the upper bounds and the number of omitted samplers are displayed in a table which you can export should you wish to document the truncation process in your test report.<br>
 In this table, when the number of samples that is left after the truncation is less than 100, the plugin will mark them as "Small Group" as a precaution.
 
+== Pass / Fail Test ==
+The plugin lets you specify a maximum truncation percentage. Any samplers which have been truncated over this threshold shall be marked as "failed" in the results table.<br>
+The default value of the threshold is 0.1 (or 10%). You may need to adjust this value relative to the choice you make for the tukey-K parameter.
+
 == Setup ==
-Download the plugin using the JMeter Plugins Manager.<br>
-Then add the plugin to a Test Plan via the "Add > Non-Test Elements" menu.
+Download the plugin using the JMeter Plugins Manager.
+
+== Usage via the GUI ==
+Add the plugin to a Test Plan via the "Add > Non-Test Elements" menu.
 
 [https://github.com/rbourga/jmeter-plugins-2/blob/main/tools/outlierdetector/src/site/img/wiki/rtod_NonTestElmnt.png NonTestElement]
 
-== Usage via the GUI ==
 === Filtering the outliers ===
 Specify the original JMeter results file, select your K option and hit "Detect".<br>
 The plugin parses the data, and if outliers are found, it will create two new files in the same folder of the original file: one for the outliers and another one for the remaining samplers with a suffix of "_trimmed" in the name.
@@ -38,15 +40,16 @@ By clicking on the "Save" button, the plugin will copy the truncation results in
 == Usage via Command Line ==
 You can call the outlier detector in a script as in the following example:
 
-<code>jmeter\bin\RightTailOutlierDetector.bat --input-file inputfile.jtl --tukey-k 3</code>
+<code>java -jar cmdrunner-x.y.z.jar --tool RightTailOutlierDetector --input-file inputfile.jtl --tukey-k 3 --max-trim-pct 0.1</code>
 
-Parameters are:
---input-file: <filenameIn> --tukey-k <1.5 or 3>
+Parameters are:<br>
+* cmdrunner-x.y.z.jar = cmdrunner present in your jmeter/lib directory;
+* input-file: <filenameIn>;
+* tukey-k <1.5 or 3>
+* max-trim-pct <maximum truncation percentage accepted>
 
-The tool will return the result of the operation in the "RightTailOutlierDetectorTool: <returnedId>" line with <returnedId> equal to:
-* -1: no samplers found in the input file;
-* 0: no outliers found, no new files created;
-* <any positive number>: total number of outliers found - three new files created: "_trimmed", "_outliers" and "_trimSummary.csv"
+The plugin will return the number of failed samplers in the exit code, allowing to fail the build step in the CI/CD tool if the build process of the tool uses a non zero exit code as a failed indicator.<br>
+It will also save the statistical results of the trimming operation in a "inputfile_trimSummary.html" file, in addition to the 'inputfile_trimmed" and "inputfile_outliers" files.
 
 == See also ==
 * [https://en.wikipedia.org/wiki/Outlier Outlier]

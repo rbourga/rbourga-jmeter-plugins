@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -37,6 +38,8 @@ import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JFormattedTextField;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
@@ -61,6 +64,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kg.apc.jmeter.JMeterPluginsUtils;
+import rbourga.common.HTMLSaveService;
 import rbourga.maths.outlierdetection.UpperFenceOutlierDetector;
 
 /**
@@ -81,6 +85,8 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 	// Buttons for Tukey's Control Panel
 	private final JRadioButton oJRadioButton_1_5 = new JRadioButton("1.5 (detect all outliers)", false);
 	private final JRadioButton oJRadioButton_3 = new JRadioButton("3 (detect only extreme values)", true);
+	private JFormattedTextField oJFormattedTextField_MaxTrimPct;
+	private final JLabel oJLabel_MaxTrimPct = new JLabel("Max. Trim. Percentage [0..1] ");
 
 	// Objects for the File Panel selector
 	private FilePanel oFilePanel;
@@ -108,10 +114,13 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 				JMeterUtils.getResString("aggregate_report_count"), // # Samples
 				"Upper Fence", "# Trimmed", // number of samples that have been discarded
 				"Trimmed %", // number of samples that have been discarded as a percentage
-				"Small Group" // shows a tick if remaining number of samples < 100
-		}, new Class[] { String.class, Integer.class, Integer.class, Integer.class, Double.class, Boolean.class });
+				"Small Group", // shows a tick if remaining number of samples < 100
+				"Failed" // shows a tick if pct trimmed more than the specified threshold
+		}, new Class[] { String.class, Integer.class, Integer.class, Integer.class, Double.class, Boolean.class, Boolean.class });
 	}
-    public void saveDataModelTable() {
+	private int iNumberOfTotalObjectsTrimmed = 0;
+	private int iFailedClnNbr = 6;
+    public void saveDataModelTableAsCsv() {
 		// By default, data saved with comma separated values
 		FileWriter _oFileWriter = null;
     	String _sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_TrimSummary.csv";
@@ -126,6 +135,22 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 		} catch (IOException ioE) {
 			ioE.printStackTrace();
 		}		
+	}
+    public void saveDataModelTableAsHtml(String sMaxTrimPct) {
+		// Saves trimming results in an HTML file for import in DevOps tool later on
+		FileWriter _oFileWriter = null;
+		String _sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_TrimSummary.html";
+		try {
+			_oFileWriter = new FileWriter(_sOutputFile);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		try {
+			HTMLSaveService.saveHTMLtable("Right Tail Outliers Trimming Results (accepted max trim pct: " + sMaxTrimPct + ")", oPowerTableModel, _oFileWriter, iFailedClnNbr);
+			_oFileWriter.close();
+		} catch (IOException ioE) {
+			ioE.printStackTrace();
+		}
 	}
 
 	// Table for displaying the results of trimming
@@ -171,6 +196,7 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 		/* Called when user clicks on "Clear" or "Clear All" buttons.
 		 * Clears data specific to this plugin
 		 */
+		iNumberOfTotalObjectsTrimmed = 0;
 		aOutlierList.clear();
 		collector.clearData();
 		mSampleList.clear();
@@ -232,6 +258,18 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 		_oJPanelTukey.add(oJRadioButton_3);
 		_oJPanelTukey.setBorder(BorderFactory.createTitledBorder("Tukey's constant k"));
 
+		// Panel for Failure criteria option
+		JPanel _oJPanelFail = new JPanel(new BorderLayout());
+		NumberFormat oNumberFormat_MaxPct = NumberFormat.getNumberInstance();
+		oNumberFormat_MaxPct.setMaximumFractionDigits(2);
+		// Create Trim Pass/Fail text field and setup format
+		_oJPanelFail.add(oJLabel_MaxTrimPct, BorderLayout.WEST);
+		oJFormattedTextField_MaxTrimPct = new JFormattedTextField(oNumberFormat_MaxPct);
+		oJFormattedTextField_MaxTrimPct.setValue(0.10); // by default, 10% max trimmed
+		oJFormattedTextField_MaxTrimPct.setColumns(4);
+		_oJPanelFail.add(oJFormattedTextField_MaxTrimPct);
+		_oJPanelFail.setBorder(BorderFactory.createTitledBorder("Failure Criteria Specification"));
+
 		// Panel for selection of file
 		oFilePanel = new FilePanel("Read results from file and Detect outliers in right tail", EXTS);
 
@@ -265,6 +303,7 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 
 		// Finally, assemble all panels
 		_oVerticalPanel.add(_oJPanelTukey);
+		_oVerticalPanel.add(_oJPanelFail);
 		_oVerticalPanel.add(oFilePanel);
 		_oVerticalPanel.add(_oJPanelDetect);
 		_oVerticalPanel.add(_oJScrollPane);
@@ -275,10 +314,23 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 	}
 	
 	public void actionPerformed(ActionEvent actionEvt) {
+		double _fMaxTrimPct;
 		String _sActionCommand = actionEvt.getActionCommand();
 		switch (_sActionCommand) {
 		case ACTION_DETECT:
 			double _kValue;
+
+			// Parse Pct value
+			_fMaxTrimPct = ((Number) oJFormattedTextField_MaxTrimPct.getValue()).doubleValue();
+			if ((_fMaxTrimPct < 0) || (_fMaxTrimPct > 1)) {
+				if (bUnitTests) {
+					System.out.println("RightTailOutlierDetectorGUI_ERROR: Please enter a percentage between 0 and 1.");
+				} else {
+					GuiPackage.showErrorMessage("Please enter a percentage value between 0 and 1.", "Max Percentage Trimming Setting error");
+				}
+				return;
+			}
+
 			// Parse filename
 			String _sInputFile = oFilePanel.getFilename();
 			if (_sInputFile.isEmpty()) {
@@ -310,7 +362,7 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 			}
 
 			// Now, process the data
-			int _iTrimResult = outlierDetection(_sInputFile, _kValue);
+			int _iTrimResult = outlierDetection(_sInputFile, _kValue, _fMaxTrimPct);
 			switch (_iTrimResult) {
 			case -1:
 				if (bUnitTests) {
@@ -322,18 +374,30 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 				}
 				break;
 			case 0:
-				if (bUnitTests) {
-					System.out.println("RightTailOutlierDetectorGUI_INFO: Done, no outliers found.");
-				} else {
-					GuiPackage.showInfoMessage("No outliers found in the right tail.", "Right Tail Outlier Detection");
-				}
+				switch (iNumberOfTotalObjectsTrimmed) {
+				case 0:
+					if (bUnitTests) {
+						System.out.println("RightTailOutlierDetectorGUI_INFO: Done, no outliers found.");
+					} else {
+						GuiPackage.showInfoMessage("No outliers found in the right tail.", "Right Tail Outlier Detection");
+					}
+					break;
+				default:
+					if (bUnitTests) {
+						System.out.println("RightTailOutlierDetectorGUI_INFO: Done, " + iNumberOfTotalObjectsTrimmed
+								+ " outliers found in the right tail.\n" + "Refer to " + sInputFileBaseName	+ " _Outliers and _Trimmed files.");
+					} else {
+						GuiPackage.showInfoMessage(iNumberOfTotalObjectsTrimmed + " outliers found in the right tail.\n" + "Refer to " + sInputFileBaseName	+" _Outliers and _Trimmed files.", "Right Tail Outlier Detection");
+					}
+					break;
+				 }
 				break;
 			default:
 				if (bUnitTests) {
-					System.out.println("RightTailOutlierDetectorGUI_INFO: Done, " + _iTrimResult
-							+ " outliers found in the right tail.\n" + "Refer to " + sInputFileBaseName	+ " _Outliers and _Trimmed files.");
+					System.out.println("RightTailOutlierDetectorGUI_WARN: Done, " + _iTrimResult
+							+ " elements exceed trimming pct threshold.\n" + "Refer to " + sInputFileBaseName	+ " _Outliers and _Trimmed files.");
 				} else {
-					GuiPackage.showInfoMessage(_iTrimResult + " outliers found in the right tail.\n" + "Refer to " + sInputFileBaseName	+" _Outliers and _Trimmed files.", "Right Tail Outlier Detection");
+					GuiPackage.showWarningMessage(_iTrimResult + " elements exceed trimming threshold.\n" + "Refer to " + sInputFileBaseName	+" _Outliers and _Trimmed files.", "Right Tail Outlier Detection");
 				}
 			}
 			break;
@@ -347,7 +411,7 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 				}
 				return;
 			}
-			saveDataModelTable();
+			saveDataModelTableAsCsv();
 			if (bUnitTests) {
 				System.out.println("RightTailOutlierDetectorGUI_INFO: Stats saved to " + sInputFileBaseName + "_TrimSummary.csv.");
 			} else {
@@ -363,8 +427,10 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 		}
 	}
 	
-	public int outlierDetection(String sInputFile, double fTukey_K) {
-		int _iNumberOfTotalObjectsTrimmed = 0;
+	public int outlierDetection(String sInputFile, double fTukey_K, double fMaxTrimPct) {
+		BigDecimal _bdMaxTrimPct = new BigDecimal(fMaxTrimPct);
+		int _iNbOfFailedElements = 0;
+
 		UpperFenceOutlierDetector _oUpperFenceOutlierDetector = new UpperFenceOutlierDetector();
 
 		// 1. Load the data file using the default collector provided by the AbstractVisualizer class
@@ -427,52 +493,56 @@ public class RightTailOutlierDetectorGui extends AbstractVisualizer implements A
 			// Round % to 4 decimal places
 			BigDecimal _bDnumberOfObjectsTrimmedPerCentRounded = _bDnumberOfObjectsTrimmedPerCent.setScale(4,
 					RoundingMode.HALF_UP);
-			_iNumberOfTotalObjectsTrimmed = _iNumberOfTotalObjectsTrimmed + _iNumberOfObjectsTrimmed;
+			iNumberOfTotalObjectsTrimmed = iNumberOfTotalObjectsTrimmed + _iNumberOfObjectsTrimmed;
 			Boolean _bSmallGroup = false;
 			if (_aLabelSamples.size() < 100) {
 				_bSmallGroup = true;
 			}
+			Boolean _bFailed = false;
+			if (_bDnumberOfObjectsTrimmedPerCentRounded.compareTo(_bdMaxTrimPct) >= 0) {
+				_bFailed = true;
+				_iNbOfFailedElements++;
+			}
+
 			// Update the statistics table
 			Object[] _oArrayRowData = { _sLabelId, _iNumberOfObjectsBefore, _fUpperFenceMin, _iNumberOfObjectsTrimmed,
-					_bDnumberOfObjectsTrimmedPerCentRounded.doubleValue(), _bSmallGroup };
+					_bDnumberOfObjectsTrimmedPerCentRounded.doubleValue(), _bSmallGroup, _bFailed};
 			oPowerTableModel.addRow(_oArrayRowData);
 		}
 
 		// Repaint the table
 		oPowerTableModel.fireTableDataChanged();
 
-		// Save the outliers in a file for post analysis
-		if (aOutlierList.isEmpty() == false) {
-			SampleEvent _oSampleEvent = null;
-			sInputFileDirectoryName = FilenameUtils.getFullPath(sInputFile);
-			sInputFileBaseName = FilenameUtils.getBaseName(sInputFile);
-			String _sInputFileExtension = FilenameUtils.getExtension(sInputFile);
+		// Save the non-trimmed results in a file for post stats
+		sInputFileDirectoryName = FilenameUtils.getFullPath(sInputFile);
+		sInputFileBaseName = FilenameUtils.getBaseName(sInputFile);
+		String _sInputFileExtension = FilenameUtils.getExtension(sInputFile);
+		// Filename for the "good" samplers only
+		String _sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_Trimmed." + _sInputFileExtension;
+		PrintWriter _oPrintWriter = initializeFileOutput(_sOutputFile);
+		SampleEvent _oSampleEvent = null;
+		for (String _sLabelId : mSampleList.keySet()) {
+			List<SampleResult> _aSampleResult = mSampleList.get(_sLabelId);
+			for (SampleResult _oSampleResult : _aSampleResult) {
+				_oSampleEvent = new SampleEvent(_oSampleResult, null);
+				_oPrintWriter.println(CSVSaveService.resultToDelimitedString(_oSampleEvent));
+			}
+		}
+		// Close the file
+		_oPrintWriter.close();
 
+		// Now save the outliers in a separate file for post analysis
+		if (aOutlierList.isEmpty() == false) {
 			// Filename containing the excluded samplers only
-			String _sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_Outliers." + _sInputFileExtension;
-			PrintWriter _oPrintWriter = initializeFileOutput(_sOutputFile);
-			// Now save the outliers
+			_sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_Outliers." + _sInputFileExtension;
+			_oPrintWriter = initializeFileOutput(_sOutputFile);
 			for (SampleResult _oSampleResult : aOutlierList) {
 				_oSampleEvent = new SampleEvent(_oSampleResult, null);
 				_oPrintWriter.println(CSVSaveService.resultToDelimitedString(_oSampleEvent));
 			}
 			// Close the file
 			_oPrintWriter.close();
-
-			// Same thing for the non-trimmed results, saved in a separate file
-			_sOutputFile = sInputFileDirectoryName + sInputFileBaseName + "_Trimmed." + _sInputFileExtension;
-			_oPrintWriter = initializeFileOutput(_sOutputFile);
-			// Now save the good samplers
-			for (String _sLabelId : mSampleList.keySet()) {
-				List<SampleResult> _aSampleResult = mSampleList.get(_sLabelId);
-				for (SampleResult _oSampleResult : _aSampleResult) {
-					_oSampleEvent = new SampleEvent(_oSampleResult, null);
-					_oPrintWriter.println(CSVSaveService.resultToDelimitedString(_oSampleEvent));
-				}
-			}
-			// Close the file
-			_oPrintWriter.close();
 		}
-		return _iNumberOfTotalObjectsTrimmed;
+		return _iNbOfFailedElements;
 	}
 }
