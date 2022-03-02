@@ -12,8 +12,8 @@ Finally, the upper bounds and the number of omitted samplers are displayed in a 
 In this table, when the number of samples that is left after the truncation is less than 100, the plugin will mark them as "Small Group" as a precaution.
 
 == Pass / Fail Test ==
-The plugin lets you specify a maximum truncation percentage. Any samplers which have been truncated over this threshold shall be marked as "failed" in the results table.<br>
-The default value of the threshold is 0.1 (or 10%). You may need to adjust this value relative to the choice you make for the tukey-K parameter.
+The plugin lets you specify a maximum truncation percentage. Any samplers which have been truncated over this threshold shall be marked as "failed" in the results table. A "failed" truncation means too many outliers were detected and that you should investigate the events to see if this is acceptable or not.<br>
+The default value of the threshold is 0.1 (or 10%). You may need to adjust this value relative to the size of your samples and to the choice you make for the tukey-K parameter. For example, by setting k = 1.5, you are using a high detection rate which may result with more than 10% of outliers.
 
 == Setup ==
 Download the plugin using the JMeter Plugins Manager.
