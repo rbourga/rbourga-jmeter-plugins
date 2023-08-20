@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.github.rbourga.jmeter.apdexcoeffvar;
+package com.github.rbourga.jmeter.apdexcov.gui;
 
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
@@ -30,12 +30,14 @@ import org.apache.jorphan.gui.MinMaxLongRenderer;
 import org.apache.jorphan.gui.NumberRenderer;
 import org.apache.jorphan.gui.RendererUtils;
 
+import com.github.rbourga.jmeter.apdexcov.logic.ApdexCoVLogic;
+
 import kg.apc.jmeter.JMeterPluginsUtils;
 
 /**
  * 
  */
-public class ApdexCoeffVarGui extends AbstractVisualizer implements ActionListener, Clearable {
+public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, Clearable {
 	/**
 	 * This extends the AbstractVisualizer class because it provides the easiest means to handle SampleResults.
 	 */
@@ -56,7 +58,7 @@ public class ApdexCoeffVarGui extends AbstractVisualizer implements ActionListen
 	private FilePanel filePnl;
 
 	// GUI constructor
-	public ApdexCoeffVarGui() {
+	public ApdexCoVGui() {
 		super();
 
 		// Use standard JMeter border
@@ -116,7 +118,7 @@ public class ApdexCoeffVarGui extends AbstractVisualizer implements ActionListen
 		jPnlCalc.add(jBtnCalc);
 
 		// Grid to display Apdex score of samplers
-		JTable jTblStats = new JTable(ApdexCoeffVarLogic.getPwrTblMdelStats());
+		JTable jTblStats = new JTable(ApdexCoVLogic.getPwrTblMdelStats());
 		JMeterUtils.applyHiDPI(jTblStats);
 		jTblStats.setAutoCreateRowSorter(true);
 		RendererUtils.applyRenderers(jTblStats, new TableCellRenderer[] {
@@ -175,7 +177,7 @@ public class ApdexCoeffVarGui extends AbstractVisualizer implements ActionListen
 	 @Override
 	public String getStaticLabel() {
 		// return JMeterPluginsUtils.prefixLabel("Apdex Score Calculator");
-		return "Apdex & Coeff Var Calculator";
+		return "Apdex & Coefficient of Variation";
 	}
 
 	@Override
@@ -183,8 +185,8 @@ public class ApdexCoeffVarGui extends AbstractVisualizer implements ActionListen
 		/* Called when user clicks on "Clear" or "Clear All" buttons.
 		 * Clears data specific to this plugin
 		 */
-		ApdexCoeffVarLogic.getPwrTblMdelStats().clearData();
-		ApdexCoeffVarLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
+		ApdexCoVLogic.getPwrTblMdelStats().clearData();
+		ApdexCoVLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
 	}
 
 	@Override
@@ -197,7 +199,7 @@ public class ApdexCoeffVarGui extends AbstractVisualizer implements ActionListen
 			break;
 
 		case ACTION_SAVE:
-			if (ApdexCoeffVarLogic.getPwrTblMdelStats().getRowCount() == 0) {
+			if (ApdexCoVLogic.getPwrTblMdelStats().getRowCount() == 0) {
 				GuiPackage.showErrorMessage("Data table empty - please perform Calculate before.", "Save Table Data error");
 				return;
 			}
@@ -210,57 +212,57 @@ public class ApdexCoeffVarGui extends AbstractVisualizer implements ActionListen
 	
 	private String saveDataModTblAsCsv() {
 		String sInFile = filePnl.getFilename();
-		return ApdexCoeffVarLogic.saveApdexStatsAsCsv(sInFile);	
+		return ApdexCoVLogic.saveApdexStatsAsCsv(sInFile);
 	}
 
 	private void actionCalc() {
 		// Parse target threshold
 		double fApdexTgtTholdSec = ((Number) jFtxtFldApdexTgtTholdSec.getValue()).doubleValue();
-		if (ApdexCoeffVarLogic.isTgtTHoldOutOfRange(fApdexTgtTholdSec)) {
+		if (ApdexCoVLogic.isTgtTHoldOutOfRange(fApdexTgtTholdSec)) {
 			GuiPackage.showErrorMessage("Please enter an Apdex target threshold equal to or greater than 0.1.", "Apdex Threshold Setting error");
 			return;
 		}
 
 		// Parse Apdex score
 		double fApdexMinScore = ((Number) jFTxtFldApdexMinScore.getValue()).doubleValue();
-		if (ApdexCoeffVarLogic.isApdexMinScoreOutOfRange(fApdexMinScore)) {
+		if (ApdexCoVLogic.isApdexMinScoreOutOfRange(fApdexMinScore)) {
 			GuiPackage.showErrorMessage("Please enter a minimum Apdex score between 0 and 1.", "Apdex Score Setting error");
 			return;
 		}
 
 		// Parse Cov value
 		double fCofVarMaxPct = ((Number) jFTxtFldCofVarMax.getValue()).doubleValue();
-		if (ApdexCoeffVarLogic.isCofVarPctOutOfRange(fCofVarMaxPct)) {
+		if (ApdexCoVLogic.isCofVarPctOutOfRange(fCofVarMaxPct)) {
 			GuiPackage.showErrorMessage("Please enter a maximum Coefficent of Variation value >= 0.", "Coefficient of Variation Setting error");
 			return;
 		}
 
 		// Parse filename
 		String sInFile = filePnl.getFilename();
-		if (ApdexCoeffVarLogic.isFilenameMissing(sInFile)) {
+		if (ApdexCoVLogic.isFilenameMissing(sInFile)) {
 			GuiPackage.showErrorMessage("File name missing - please enter a filename.", "Input file error");
 			return;
 		}
-		if (ApdexCoeffVarLogic.isFileNotFound(sInFile)) {
+		if (ApdexCoVLogic.isFileNotFound(sInFile)) {
 			GuiPackage.showErrorMessage("Cannot find input file - please enter a valid filename.", "Input file error");
 			return;
 		}
-		if (ApdexCoeffVarLogic.isFileNotValid(sInFile)) {
+		if (ApdexCoVLogic.isFileNotValid(sInFile)) {
 			GuiPackage.showErrorMessage("Input file is empty or contains invalid data - please enter a valid results file.", "Input file error");
 			return;
 		}
 
 		// Now that preliminary checks have been done, let's do the job...
 		// Clear any statistics from a previous analysis
-		ApdexCoeffVarLogic.getPwrTblMdelStats().clearData();
+		ApdexCoVLogic.getPwrTblMdelStats().clearData();
 
 		// Now, process the data
-		int iResult = ApdexCoeffVarLogic.computeApdexCofVar(sInFile, fApdexTgtTholdSec, fApdexMinScore, fCofVarMaxPct);
+		int iResult = ApdexCoVLogic.computeApdexCofVar(sInFile, fApdexTgtTholdSec, fApdexMinScore, fCofVarMaxPct);
 		if (iResult == -1) {
 			GuiPackage.showErrorMessage("No samplers found in results file - please check your file.", "Input file error");
 		}
 		// Repaint the table
-		ApdexCoeffVarLogic.getPwrTblMdelStats().fireTableDataChanged();
+		ApdexCoVLogic.getPwrTblMdelStats().fireTableDataChanged();
 	}
 
 	@Override

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.github.rbourga.jmeter.apdexcoeffvar;
+package com.github.rbourga.jmeter.apdexcov.logic;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -19,10 +19,7 @@ import org.apache.jmeter.util.JMeterUtils;
 import com.github.rbourga.jmeter.common.FileServices;
 import com.github.rbourga.jmeter.common.MathMoments;
 
-/**
- * 
- */
-public final class ApdexCoeffVarLogic {
+public final class ApdexCoVLogic {
 
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
@@ -31,8 +28,8 @@ public final class ApdexCoeffVarLogic {
 					JMeterUtils.getResString("sampler label"), // Label
 					JMeterUtils.getResString("aggregate_report_count"), // # Samples
 					JMeterUtils.getResString("average"), // Average
-					"Cof Var %", // Coefficent of Variation
-					"Cof Var Rating",
+					"CoV %", // Coefficent of Variation
+					"CoV Rating",
 					JMeterUtils.getResString("aggregate_report_error%"), // # Error %
 					"Apdex Value",
 					"Apdex Target", // Target threshold
@@ -67,7 +64,7 @@ public final class ApdexCoeffVarLogic {
 		}
 
 		// Format the threshold as per Apdex specs
-		dApdexTgtTholdSec = ApdexCoeffVarLogic.formatTgtTHold(dApdexTgtTholdSec);
+		dApdexTgtTholdSec = ApdexCoVLogic.formatTgtTHold(dApdexTgtTholdSec);
 
 		// Now process the data points
 		long lApdexTgtTholdMS = (long) (dApdexTgtTholdSec * 1000); // Convert to ms as JMeter times are stored in ms
@@ -213,8 +210,19 @@ public final class ApdexCoeffVarLogic {
 	public static String saveApdexStatsAsCsv(String sFilePath) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexScore.csv";
+		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexCoVScores.csv";
 		FileServices.saveTableAsCsv(sOutputFile, pwrTblMdlStats);
 		return sOutputFile;
+	}
+
+	public static String saveApdexStatsAsHtml(String sFilePath, String sApdexMinScore, String sCoVMaxPct) {
+		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
+		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
+		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexCoVScores.html";
+		String sTableTitle = "Apdex & Coefficient of Variation Score Results (Apdex min score: " + sApdexMinScore + ", CoV max: " + sCoVMaxPct + ")";
+		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, 10);
+		return sOutputFile;
+		// TODO Auto-generated method stub
+		
 	}
 }
