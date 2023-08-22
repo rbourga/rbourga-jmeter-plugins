@@ -4,9 +4,11 @@
 package com.github.rbourga.jmeter.common;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,6 +19,9 @@ import javax.swing.table.DefaultTableModel;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.jmeter.samplers.SampleEvent;
+import org.apache.jmeter.samplers.SampleResult;
+import org.apache.jmeter.samplers.SampleSaveConfiguration;
 import org.apache.jmeter.save.CSVSaveService;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -139,4 +144,30 @@ public final class FileServices {
 			e.printStackTrace();
 		}
 	}
+
+	// Used by Test methods to create csv test results files
+	public static SampleEvent resultToEvent(SampleSaveConfiguration oSampleSaveConfig, SampleResult oSampleResult, boolean bSuccess) {
+		oSampleResult.setAllThreads(0);
+		oSampleResult.setConnectTime(0);
+		oSampleResult.setIdleTime(0);
+		oSampleResult.setLatency(0);
+		oSampleResult.setSaveConfig(oSampleSaveConfig);
+		oSampleResult.setSuccessful(bSuccess);
+		SampleEvent oSampleEvent = new SampleEvent(oSampleResult, null);
+		return oSampleEvent;
+	}
+
+	public static PrintWriter initCSVtestResultsFile(String sFilePath) {
+		PrintWriter oPrintWriter = null;
+		try {
+			oPrintWriter = new PrintWriter(sFilePath);
+			// Save the header line
+			oPrintWriter.println(CSVSaveService.printableFieldNamesToString());
+		} catch (FileNotFoundException e) {
+			// Auto-generated catch block
+			e.printStackTrace();
+		}
+		return oPrintWriter;
+	}
+
 }
