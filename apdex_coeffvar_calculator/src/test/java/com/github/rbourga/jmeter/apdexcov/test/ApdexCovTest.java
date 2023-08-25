@@ -86,7 +86,8 @@ public class ApdexCovTest {
 
 		oPrintWriter.close();
 		System.out.println("*****");
-		System.out.println("***** ApdexCovTest: for unit tests, get a test file at " + sJMeterTempDir);        
+		System.out.println("***** ApdexCovTest: for unit tests, get a test file at " + sJMeterTempDir); 
+		System.out.println("(Remove the data_type, field in this file)");
 		System.out.println("*****");
     }
 

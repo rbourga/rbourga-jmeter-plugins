@@ -42,8 +42,7 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 	 * This extends the AbstractVisualizer class because it provides the easiest means to handle SampleResults.
 	 */
 	private static final long serialVersionUID = 1L;
-	// TODO: check url
-	private static final String WIKIPAGE = "https://github.com/rbourga/rbourga-jmeter-plugins/blob/main/tools/apdexcalculator/src/site/dat/wiki/ApdexScoreCalculator.wiki";
+	private static final String WIKIPAGE = "https://github.com/rbourga/rbourga-jmeter-plugins/wiki/APDEX-Score-and-Coefficient-of-Variation-Calculator";
 	private static final String[] EXTS = { ".jtl", ".csv", ".tsv" };
 	private static final String ACTION_CALCULATE = "calculate";
 	private static final String ACTION_SAVE = "save";
