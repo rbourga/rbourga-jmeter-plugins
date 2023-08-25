@@ -8,7 +8,7 @@ import org.apache.commons.csv.CSVRecord;
 public class MathMoments {
 
 	// Variables
-	private double dCofVar;
+	private double dCoV;	// Coefficient of Variation
 	private double dErrPct;
 	private double dMean;
 	private double dStdDev;
@@ -20,11 +20,11 @@ public class MathMoments {
 		this.dMean = dMean;
 		this.dVariance = dVariance;
 		this.dStdDev = Math.sqrt(dVariance);
-		this.dCofVar = dStdDev / dMean;
+		this.dCoV = dStdDev / dMean;
 	}
 
-	public double getCoeffVar() {
-		return dCofVar;
+	public double getCoV() {
+		return dCoV;
 	}
 
 	public double getErrorPercentage() {

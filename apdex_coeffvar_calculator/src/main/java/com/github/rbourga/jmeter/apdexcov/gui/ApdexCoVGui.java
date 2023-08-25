@@ -50,11 +50,11 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 
 	// Objects for the UI Panels
 	private JLabel jLblApdexTgtTholdSec = new JLabel("Apdex Target Threshold T (in seconds) ");
-	private JLabel jLblApdexMinScore = new JLabel("Minimum Apdex Score [0..1] ");
-	private JLabel jLblCofVarMax = new JLabel("Maximum Coeff Variation (%) ");
+	private JLabel jLblApdexAQL = new JLabel("Apdex Acceptable Quality Level [0..1] ");
+	private JLabel jLblCoVAL = new JLabel("Coefficient of Variation Acceptable Limit (%) ");
 	private JFormattedTextField jFtxtFldApdexTgtTholdSec;
-	private JFormattedTextField jFTxtFldApdexMinScore;
-	private JFormattedTextField jFTxtFldCofVarMax;
+	private JFormattedTextField jFTxtFldApdexAQL;
+	private JFormattedTextField jFTxtFldCoVAL;
 	private FilePanel filePnl;
 
 	// GUI constructor
@@ -90,22 +90,22 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 		NumberFormat nbrF2digit = NumberFormat.getNumberInstance();
 		nbrF2digit.setMaximumFractionDigits(2);
 		// Create Apdex Pass/Fail text field and setup format
-		jPnlApdexFail.add(jLblApdexMinScore, BorderLayout.WEST);
-		jFTxtFldApdexMinScore = new JFormattedTextField(nbrF2digit);
-		jFTxtFldApdexMinScore.setValue(0.85); // by default, "good" rating
-		jFTxtFldApdexMinScore.setColumns(4);
-		jPnlApdexFail.add(jFTxtFldApdexMinScore);
+		jPnlApdexFail.add(jLblApdexAQL, BorderLayout.WEST);
+		jFTxtFldApdexAQL = new JFormattedTextField(nbrF2digit);
+		jFTxtFldApdexAQL.setValue(0.85); // by default, "good" rating
+		jFTxtFldApdexAQL.setColumns(4);
+		jPnlApdexFail.add(jFTxtFldApdexAQL);
 		jPnlApdexFail.setBorder(BorderFactory.createTitledBorder("Apdex Failure Criteria Specification"));
 		// Create CoV Pass/Fail text field and setup format
-		JPanel jPnlCoeffVarFail = new JPanel(new BorderLayout());
+		JPanel jPnlCoVFail = new JPanel(new BorderLayout());
 		NumberFormat pctInst = NumberFormat.getPercentInstance();
 		pctInst.setMaximumFractionDigits(2);
-		jPnlCoeffVarFail.add(jLblCofVarMax, BorderLayout.WEST);
-		jFTxtFldCofVarMax = new JFormattedTextField(pctInst);
-		jFTxtFldCofVarMax.setValue(0.3); // 30% and above considered high variation
-		jFTxtFldCofVarMax.setColumns(4);
-		jPnlCoeffVarFail.add(jFTxtFldCofVarMax);
-		jPnlCoeffVarFail.setBorder(BorderFactory.createTitledBorder("Coefficient of Variation Failure Criteria Specification"));
+		jPnlCoVFail.add(jLblCoVAL, BorderLayout.WEST);
+		jFTxtFldCoVAL = new JFormattedTextField(pctInst);
+		jFTxtFldCoVAL.setValue(0.3); // 30% and above considered high variation
+		jFTxtFldCoVAL.setColumns(4);
+		jPnlCoVFail.add(jFTxtFldCoVAL);
+		jPnlCoVFail.setBorder(BorderFactory.createTitledBorder("Coefficient of Variation Failure Criteria Specification"));
 
 		// Panel for selection of file
 		filePnl = new FilePanel("Read results from file and calculate Apdex & Coeff Var scores", EXTS);
@@ -146,7 +146,7 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 		// Finally, assemble all panels
 		vrtPnl.add(jPnlApdex);
 		vrtPnl.add(jPnlApdexFail);
-		vrtPnl.add(jPnlCoeffVarFail);
+		vrtPnl.add(jPnlCoVFail);
 		vrtPnl.add(filePnl);
 		vrtPnl.add(jPnlCalc);
 		vrtPnl.add(jScrollPane);
@@ -224,15 +224,15 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 		}
 
 		// Parse Apdex score
-		double fApdexMinScore = ((Number) jFTxtFldApdexMinScore.getValue()).doubleValue();
-		if (ApdexCoVLogic.isApdexMinScoreOutOfRange(fApdexMinScore)) {
+		double fApdexAQL = ((Number) jFTxtFldApdexAQL.getValue()).doubleValue();
+		if (ApdexCoVLogic.isApdexMinScoreOutOfRange(fApdexAQL)) {
 			GuiPackage.showErrorMessage("Please enter a minimum Apdex score between 0 and 1.", "Apdex Score Setting error");
 			return;
 		}
 
 		// Parse Cov value
-		double fCofVarMaxPct = ((Number) jFTxtFldCofVarMax.getValue()).doubleValue();
-		if (ApdexCoVLogic.isCofVarPctOutOfRange(fCofVarMaxPct)) {
+		double fCoVALPct = ((Number) jFTxtFldCoVAL.getValue()).doubleValue();
+		if (ApdexCoVLogic.isCoVPctOutOfRange(fCoVALPct)) {
 			GuiPackage.showErrorMessage("Please enter a maximum Coefficent of Variation value >= 0.", "Coefficient of Variation Setting error");
 			return;
 		}
@@ -257,7 +257,7 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 		ApdexCoVLogic.getPwrTblMdelStats().clearData();
 
 		// Now, process the data
-		int iResult = ApdexCoVLogic.computeApdexCofVar(sInFile, fApdexTgtTholdSec, fApdexMinScore, fCofVarMaxPct);
+		int iResult = ApdexCoVLogic.computeApdexCoV(sInFile, fApdexTgtTholdSec, fApdexAQL, fCoVALPct);
 		if (iResult == -1) {
 			GuiPackage.showErrorMessage("No samplers found in results file - please check your file.", "Input file error");
 		}

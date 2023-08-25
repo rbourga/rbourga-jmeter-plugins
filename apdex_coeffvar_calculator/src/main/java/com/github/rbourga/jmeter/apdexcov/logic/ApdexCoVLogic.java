@@ -54,7 +54,7 @@ public final class ApdexCoVLogic {
 		return pwrTblMdlStats;
 	}
 
-	public static int computeApdexCofVar(String sFilepath, double dApdexTgtTholdSec, double dApdexMinScore, double dCofVarMaxPct) {
+	public static int computeApdexCoV(String sFilepath, double dApdexTgtTholdSec, double dApdexAQL, double dCoVALPct) {
 		// Load the data after getting the delimiter separator from current JMeter
 		// properties
 		char cDelim = SampleSaveConfiguration.staticConfig().getDelimiter().charAt(0);
@@ -103,12 +103,12 @@ public final class ApdexCoVLogic {
 			String sApdexRating = setApdexRating(bdApdexScoreRnd);
 
 			// Coeff Var processing
-			BigDecimal dCofVarScore = new BigDecimal(0.00);
-			dCofVarScore = new BigDecimal(mathMoments.getCoeffVar());
+			BigDecimal dCoVScore = new BigDecimal(0.00);
+			dCoVScore = new BigDecimal(mathMoments.getCoV());
 			// Similar to error rate, round to 4 decimal places
-			BigDecimal bdCofVarScoreRnd = new BigDecimal(0.00);
-			bdCofVarScoreRnd = dCofVarScore.setScale(4, RoundingMode.HALF_UP);
-			String sCofVarRating = setCofVarRating(bdCofVarScoreRnd);
+			BigDecimal bdCoVScoreRnd = new BigDecimal(0.00);
+			bdCoVScoreRnd = dCoVScore.setScale(4, RoundingMode.HALF_UP);
+			String sCoVRating = setCoVRating(bdCoVScoreRnd);
 
 			// Finally update the statistics table
 			Boolean bSmallGroup = false;
@@ -116,10 +116,10 @@ public final class ApdexCoVLogic {
 				bSmallGroup = true;
 			}
 			Boolean bFailed = false;
-			BigDecimal bdApdexMinScore = new BigDecimal(dApdexMinScore);
-			BigDecimal bdCofVarMaxPct = new BigDecimal(dCofVarMaxPct);
-			if ((bdApdexScoreRnd.compareTo(bdApdexMinScore) == -1) ||
-				(bdCofVarScoreRnd.compareTo(bdCofVarMaxPct) != -1)) {
+			BigDecimal bdApdexAQL = new BigDecimal(dApdexAQL);
+			BigDecimal bdCoVALPct = new BigDecimal(dCoVALPct);
+			if ((bdApdexScoreRnd.compareTo(bdApdexAQL) == -1) ||
+				(bdCoVScoreRnd.compareTo(bdCoVALPct) != -1)) {
 				bFailed = true;
 				iTotNbrOfFailedRcd++;
 			}
@@ -128,8 +128,8 @@ public final class ApdexCoVLogic {
 					sLbl,		// Label
 					iTotRcd,	// # Samples
 					Long.valueOf((long) mathMoments.getMean()),	// Average
-					bdCofVarScoreRnd.doubleValue(),	//Cof of Var %
-                    sCofVarRating,	// Cof of Var Rating
+					bdCoVScoreRnd.doubleValue(),	//Cof of Var %
+					sCoVRating,	// Cof of Var Rating
                     Double.valueOf(mathMoments.getErrorPercentage()),	//# Error %
                     bdApdexScoreRnd.doubleValue(),	//Apdex Value
                     dApdexTgtTholdSec,	// Apdex Target
@@ -174,7 +174,7 @@ public final class ApdexCoVLogic {
 		return sRating;
 	}
 
-	private static String setCofVarRating(BigDecimal bdScore) {
+	private static String setCoVRating(BigDecimal bdScore) {
 		String sRating = "Low";
 		if (bdScore.doubleValue() >= 0.30)
 			sRating = "High";	// high if > 30%
@@ -187,8 +187,8 @@ public final class ApdexCoVLogic {
 		return dValue < 0 || dValue > 1;
 	}
 
-	public static boolean isCofVarPctOutOfRange(double fCofVarMaxPct) {
-		return fCofVarMaxPct < 0;
+	public static boolean isCoVPctOutOfRange(double fCoVALPct) {
+		return fCoVALPct < 0;
 	}
 
 	public static boolean isFilenameMissing(String sFilePath) {
@@ -215,14 +215,12 @@ public final class ApdexCoVLogic {
 		return sOutputFile;
 	}
 
-	public static String saveApdexStatsAsHtml(String sFilePath, String sApdexMinScore, String sCoVMaxPct) {
+	public static String saveApdexStatsAsHtml(String sFilePath, String sApdexAQL, String sCoVALPct) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexCoVScores.html";
-		String sTableTitle = "Apdex & Coefficient of Variation Score Results (Apdex min score: " + sApdexMinScore + ", CoV max: " + sCoVMaxPct + ")";
+		String sTableTitle = "Apdex & Coefficient of Variation Score Results (Apdex Acceptable Quality Level = " + sApdexAQL + ", CoV Acceptable Limit = " + sCoVALPct + ")";
 		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, 10);
 		return sOutputFile;
-		// TODO Auto-generated method stub
-		
 	}
 }
