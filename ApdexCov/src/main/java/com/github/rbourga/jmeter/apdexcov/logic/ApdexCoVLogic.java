@@ -3,7 +3,6 @@
  */
 package com.github.rbourga.jmeter.apdexcov.logic;
 
-import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -189,18 +188,6 @@ public final class ApdexCoVLogic {
 
 	public static boolean isCoVPctOutOfRange(double fCoVALPct) {
 		return fCoVALPct < 0;
-	}
-
-	public static boolean isFilenameMissing(String sFilePath) {
-		return sFilePath.isEmpty();
-	}
-
-	public static boolean isFileNotFound(String sFilePath) {
-		return !(new File(sFilePath).exists());
-	}
-
-	public static boolean isFileNotValid(String sFilePath) {
-		return !(FileServices.isValidFile(sFilePath));
 	}
 
 	public static boolean isTgtTHoldOutOfRange(double dValue) {

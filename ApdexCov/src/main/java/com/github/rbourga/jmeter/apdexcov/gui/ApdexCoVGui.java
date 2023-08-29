@@ -31,6 +31,7 @@ import org.apache.jorphan.gui.NumberRenderer;
 import org.apache.jorphan.gui.RendererUtils;
 
 import com.github.rbourga.jmeter.apdexcov.logic.ApdexCoVLogic;
+import com.github.rbourga.jmeter.common.FileServices;
 
 import kg.apc.jmeter.JMeterPluginsUtils;
 
@@ -238,15 +239,15 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 
 		// Parse filename
 		String sInFile = filePnl.getFilename();
-		if (ApdexCoVLogic.isFilenameMissing(sInFile)) {
+		if (FileServices.isFilenameEmpty(sInFile)) {
 			GuiPackage.showErrorMessage("File name missing - please enter a filename.", "Input file error");
 			return;
 		}
-		if (ApdexCoVLogic.isFileNotFound(sInFile)) {
+		if (!(FileServices.isFileExist(sInFile))) {
 			GuiPackage.showErrorMessage("Cannot find input file - please enter a valid filename.", "Input file error");
 			return;
 		}
-		if (ApdexCoVLogic.isFileNotValid(sInFile)) {
+		if (!(FileServices.isFileValid(sInFile))) {
 			GuiPackage.showErrorMessage("Input file is empty or contains invalid data - please enter a valid results file.", "Input file error");
 			return;
 		}

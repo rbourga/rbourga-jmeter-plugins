@@ -4,6 +4,7 @@
 package com.github.rbourga.jmeter.common;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -31,7 +32,28 @@ import org.jsoup.nodes.Element;
  */
 public final class FileServices {
 
-	public static boolean isValidFile(String sFilePath) {
+	public static PrintWriter initCSVtestResultsFile(String sFilePath) {
+		PrintWriter oPrintWriter = null;
+		try {
+			oPrintWriter = new PrintWriter(sFilePath);
+			// Save the header line
+			oPrintWriter.println(CSVSaveService.printableFieldNamesToString());
+		} catch (FileNotFoundException e) {
+			// Auto-generated catch block
+			e.printStackTrace();
+		}
+		return oPrintWriter;
+	}
+
+	public static boolean isFileExist(String sFilePath) {
+		return (new File(sFilePath).exists());
+	}
+
+	public static boolean isFilenameEmpty(String sFilePath) {
+		return sFilePath.isEmpty();
+	}
+
+	public static boolean isFileValid(String sFilePath) {
 		try (BufferedReader brRdr = new BufferedReader(new FileReader(sFilePath))) {
 			String sLine = brRdr.readLine();
 			brRdr.close();
@@ -70,6 +92,18 @@ public final class FileServices {
 			e.printStackTrace();
 		}
 		return rcdHashMap;
+	}
+
+	// Used by Test methods to create csv test results files
+	public static SampleEvent resultToEvent(SampleSaveConfiguration oSampleSaveConfig, SampleResult oSampleResult, boolean bSuccess) {
+		oSampleResult.setAllThreads(0);
+		oSampleResult.setConnectTime(0);
+		oSampleResult.setIdleTime(0);
+		oSampleResult.setLatency(0);
+		oSampleResult.setSaveConfig(oSampleSaveConfig);
+		oSampleResult.setSuccessful(bSuccess);
+		SampleEvent oSampleEvent = new SampleEvent(oSampleResult, null);
+		return oSampleEvent;
 	}
 
 	public static void saveTableAsCsv(String sFilePath, DefaultTableModel tblMdl) {
@@ -143,31 +177,6 @@ public final class FileServices {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-
-	// Used by Test methods to create csv test results files
-	public static SampleEvent resultToEvent(SampleSaveConfiguration oSampleSaveConfig, SampleResult oSampleResult, boolean bSuccess) {
-		oSampleResult.setAllThreads(0);
-		oSampleResult.setConnectTime(0);
-		oSampleResult.setIdleTime(0);
-		oSampleResult.setLatency(0);
-		oSampleResult.setSaveConfig(oSampleSaveConfig);
-		oSampleResult.setSuccessful(bSuccess);
-		SampleEvent oSampleEvent = new SampleEvent(oSampleResult, null);
-		return oSampleEvent;
-	}
-
-	public static PrintWriter initCSVtestResultsFile(String sFilePath) {
-		PrintWriter oPrintWriter = null;
-		try {
-			oPrintWriter = new PrintWriter(sFilePath);
-			// Save the header line
-			oPrintWriter.println(CSVSaveService.printableFieldNamesToString());
-		} catch (FileNotFoundException e) {
-			// Auto-generated catch block
-			e.printStackTrace();
-		}
-		return oPrintWriter;
 	}
 
 }

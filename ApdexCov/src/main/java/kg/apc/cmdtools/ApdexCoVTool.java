@@ -9,6 +9,7 @@ import java.util.ListIterator;
 import org.apache.commons.lang3.math.NumberUtils;
 
 import com.github.rbourga.jmeter.apdexcov.logic.ApdexCoVLogic;
+import com.github.rbourga.jmeter.common.FileServices;
 
 import kg.apc.cmd.UniversalRunner;
 import kg.apc.jmeter.JMeterPluginsUtils;
@@ -63,11 +64,11 @@ public class ApdexCoVTool extends AbstractCMDTool{
 			}
 		}
 
-		// Check input-file parameter	
-		if (ApdexCoVLogic.isFileNotFound(sInFile)) {
+		// Check input-file parameter
+		if (!(FileServices.isFileExist(sInFile))) {
 			throw new IllegalArgumentException("Input file not found.");
 		}
-		if (ApdexCoVLogic.isFileNotValid(sInFile)) {
+		if (!(FileServices.isFileValid(sInFile))) {
 			throw new IllegalArgumentException("Input file invalid (could not find results).");
 		}
 		// Check apdex-tgt-thold parameter
