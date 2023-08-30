@@ -5,11 +5,9 @@ package com.github.rbourga.jmeter.common;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,9 +18,6 @@ import javax.swing.table.DefaultTableModel;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.apache.jmeter.samplers.SampleEvent;
-import org.apache.jmeter.samplers.SampleResult;
-import org.apache.jmeter.samplers.SampleSaveConfiguration;
 import org.apache.jmeter.save.CSVSaveService;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -31,19 +26,6 @@ import org.jsoup.nodes.Element;
  * Various methods for handling files
  */
 public final class FileServices {
-
-	public static PrintWriter initCSVtestResultsFile(String sFilePath) {
-		PrintWriter oPrintWriter = null;
-		try {
-			oPrintWriter = new PrintWriter(sFilePath);
-			// Save the header line
-			oPrintWriter.println(CSVSaveService.printableFieldNamesToString());
-		} catch (FileNotFoundException e) {
-			// Auto-generated catch block
-			e.printStackTrace();
-		}
-		return oPrintWriter;
-	}
 
 	public static boolean isFileExist(String sFilePath) {
 		return (new File(sFilePath).exists());
@@ -77,8 +59,7 @@ public final class FileServices {
 			csvFmt = CSVFormat.TDF.builder().setHeader().setSkipHeaderRecord(true).build();
 		}
 
-		try (FileReader fileRdr = new FileReader(sFilePath);
-				CSVParser csvParser = new CSVParser(fileRdr, csvFmt)) {
+		try (FileReader fileRdr = new FileReader(sFilePath); CSVParser csvParser = new CSVParser(fileRdr, csvFmt)) {
 			for (CSVRecord rcd : csvParser) {
 				String sLabel = rcd.get("label");
 				if (!rcdHashMap.containsKey(sLabel)) {
@@ -92,18 +73,6 @@ public final class FileServices {
 			e.printStackTrace();
 		}
 		return rcdHashMap;
-	}
-
-	// Used by Test methods to create csv test results files
-	public static SampleEvent resultToEvent(SampleSaveConfiguration oSampleSaveConfig, SampleResult oSampleResult, boolean bSuccess) {
-		oSampleResult.setAllThreads(0);
-		oSampleResult.setConnectTime(0);
-		oSampleResult.setIdleTime(0);
-		oSampleResult.setLatency(0);
-		oSampleResult.setSaveConfig(oSampleSaveConfig);
-		oSampleResult.setSuccessful(bSuccess);
-		SampleEvent oSampleEvent = new SampleEvent(oSampleResult, null);
-		return oSampleEvent;
 	}
 
 	public static void saveTableAsCsv(String sFilePath, DefaultTableModel tblMdl) {
@@ -125,9 +94,12 @@ public final class FileServices {
 	public static void saveTableAsHTML(String sFilePath, String sTblCaption, DefaultTableModel tblMdl, int iBoolColNbr) {
 		/**
 		 * This method saves the data from a table model into an HTML file. Background
-		 * color of the rows depend on iBoolClnNbr and will be set as follow: -1:
-		 * default color, any positive number: will check for value in the column number and
-		 * if: true: orange false: green
+		 * color of the rows depend on iBoolClnNbr and will be set as follow:
+		 * -1: default color,
+		 * any positive number: will check for value in the column number
+		 * and if:
+		 * true: orange
+		 * false: green
 		 */
 		// Create empty HTML shell
 		Document docHtml = Document.createShell("");

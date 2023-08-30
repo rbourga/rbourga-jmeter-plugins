@@ -1,14 +1,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.rbourga.jmeter.effectsizes</groupId>
-  <artifactId>jmeter-plugins-resultsdiff</artifactId>
+  <artifactId>jmeter-plugins-resultscomp</artifactId>
   <version>1.0.0</version>
   <properties>
   	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   	<maven.compiler.source>1.8</maven.compiler.source>
   	<maven.compiler.target>1.8</maven.compiler.target>
   </properties>
-  <name>Effet Size measurement</name>
+  <name>Effect Size measurement</name>
   <description>Measures the magnitude of the difference between two test results using Cohen's d.</description>
   <dependencies>
   	<dependency>
@@ -22,14 +22,25 @@
   		<version>0.7</version>
   	</dependency>
   	<dependency>
-  		<groupId>com.github.rbourga.jmeter.common</groupId>
-  		<artifactId>rbourga-jmeter-comm</artifactId>
-  		<version>1.0.0</version>
+		<groupId>kg.apc</groupId>
+		<artifactId>jmeter-plugins-emulators</artifactId>
+		<version>0.4</version>
+		<scope>test</scope>
   	</dependency>
   	<dependency>
   		<groupId>org.apache.commons</groupId>
   		<artifactId>commons-csv</artifactId>
   		<version>1.10.0</version>
   	</dependency>
+	<dependency>
+		<groupId>org.apache.directory.studio</groupId>
+		<artifactId>org.apache.commons.io</artifactId>
+		<version>2.4</version>
+	</dependency>
+	<dependency>
+		<groupId>com.github.rbourga.jmeter.common</groupId>
+		<artifactId>rbourga-jmeter-comm</artifactId>
+		<version>1.0.0</version>
+	</dependency>
   </dependencies>
 </project>

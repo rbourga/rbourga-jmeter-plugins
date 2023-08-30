@@ -1,5 +1,6 @@
 package com.github.rbourga.jmeter.common;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -26,25 +27,20 @@ public class MathMoments {
 	public double getCoV() {
 		return dCoV;
 	}
-
 	public double getErrorPercentage() {
 		return dErrPct;
 	}
-
 	public double getMean() {
 		return dMean;
 	}
-
 	public double getVariance() {
 		return dVariance;
 	}
 
 	public static MathMoments crteMomentsFromRecordsList(List<CSVRecord> listRcd) {
-		// Perform calculations after casting the lists into streams to take advantage
-		// of streams
+		// Perform calculations after casting the lists into streams to take advantage of streams
 		double dVariance = 0;
 		int iRcdNbr = listRcd.size();
-
 		double dMean = listRcd.stream().mapToLong(rcd -> Long.parseLong(rcd.get("elapsed"))).average().orElse(0);
 
 		if (iRcdNbr > 1) {
@@ -63,4 +59,17 @@ public class MathMoments {
 
 		return new MathMoments(dErrPct, dMean, dVariance);
 	}
+
+	public static MathMoments crteMomentsFromMeansList(ArrayList<Double> alMeans) {
+		// Perform calculations after casting the list into streams to take advantage of streams
+		double dVariance = 0;
+		int iEnbr = alMeans.size();
+		double dMean = alMeans.stream().mapToDouble(m -> m).average().orElse(0.0);
+		if (iEnbr > 1) {
+			// variance = sum((x_i - mean)^2) / (n - 1)
+			dVariance = alMeans.stream().mapToDouble(m -> m).map(m -> Math.pow(m - dMean, 2)).sum() / (iEnbr - 1);
+		}
+		return new MathMoments(0, dMean, dVariance);
+	}
+
 }

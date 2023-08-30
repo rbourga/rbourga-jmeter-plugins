@@ -176,8 +176,8 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 			break;
 
 		case ACTION_SAVE:
-			if (ApdexCoVLogic.getPwrTblMdelStats().getRowCount() == 0) {
-				GuiPackage.showErrorMessage("Data table empty - please perform Calculate before.", "Save Table Data error");
+			if (CohenDEffectSizeLogic.getPwrTblMdelStats().getRowCount() == 0) {
+				GuiPackage.showErrorMessage("Data table empty - please perform Compare before.", "Save Table Data error");
 				return;
 			}
 			String csvFilename = saveDataModTblAsCsv();
@@ -188,8 +188,8 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 	}
 	
 	private String saveDataModTblAsCsv() {
-		String sInFile = filePnl.getFilename();
-		return ApdexCoVLogic.saveApdexStatsAsCsv(sInFile);
+		String sInFileB = filePnlB.getFilename();
+		return CohenDEffectSizeLogic.saveTableStatsAsCsv(sInFileB);
 	}
 
 	private void actionCompare() {
@@ -227,11 +227,6 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 			GuiPackage.showErrorMessage("Variation file is empty or contains invalid data - please enter a valid results file.", "Input Variation file error");
 			return;
 		}
-
-
-		// Now that preliminary checks have been done, let's do the job...
-		// Clear any statistics from a previous analysis
-		CohenDEffectSizeLogic.getPwrTblMdelStats().clearData();
 
 		// Now, process the data
 		int iResult = CohenDEffectSizeLogic.calcCohenDEffectSize(sInFileA, sInFileB, fCohendAL);

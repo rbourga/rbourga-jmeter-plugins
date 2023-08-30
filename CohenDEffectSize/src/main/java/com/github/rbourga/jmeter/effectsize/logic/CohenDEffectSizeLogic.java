@@ -3,15 +3,13 @@
  */
 package com.github.rbourga.jmeter.effectsize.logic;
 
-import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
-
+import java.util.TreeMap;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jmeter.gui.util.PowerTableModel;
@@ -21,12 +19,10 @@ import org.apache.jmeter.util.JMeterUtils;
 import com.github.rbourga.jmeter.common.FileServices;
 import com.github.rbourga.jmeter.common.MathMoments;
 
-import rbourga.maths.resultscomparator.ResultsComparatorData;
-
 public final class CohenDEffectSizeLogic {
 
-	// Fields needed for Cohen's d analysis
-	private String sLblName = "";
+	public static final String AVERAGE_OF_AVERAGES = "OVERALL AVERAGE";
+
 	private int iCountA;
 	private int iCountB;
 	private double fCoVA;
@@ -41,7 +37,6 @@ public final class CohenDEffectSizeLogic {
 	private String sDiffRating;
 
 	private CohenDEffectSizeLogic(String sLbl) {
-		sLblName = sLbl;
 		iCountA = 0;
 		iCountB = 0;
 		fCoVA = 0;
@@ -61,6 +56,18 @@ public final class CohenDEffectSizeLogic {
 	}
 	private int getCountB() {
 		return iCountB;
+	}
+	private double getCoVA() {
+		return fCoVA;
+	}
+	private double getCoVB() {
+		return fCoVB;
+	}
+	private double getErrPctA() {
+		return dErrPctA;
+	}
+	private double getErrPctB() {
+		return dErrPctB;
 	}
 	private double getMeanA() {
 		return fMeanA;
@@ -96,12 +103,14 @@ public final class CohenDEffectSizeLogic {
 	private void setVarianceB(double dVariance) {
 		this.fVarianceB = dVariance;
 	}
+
 	private void setCohenD(double dValue) {
 		// BigDecimal bdCohenDNotRounded = new BigDecimal((double) Math.abs(fCohenD));
 		BigDecimal bdCohenDNotRnded = new BigDecimal(dValue);
 		// Round to 2 decimal places as per specs
 		this.bdCohenD = bdCohenDNotRnded.setScale(2, RoundingMode.HALF_UP);		
 	}
+
 	private void setDiffRating(double dValue) {
 		// 1. Get direction of movement
 		String sDir = "";
@@ -127,16 +136,6 @@ public final class CohenDEffectSizeLogic {
 	private static ArrayList<Double> alAveragesB = new ArrayList<Double>(); // Used to store all averages of B
 	private static HashMap<String, CohenDEffectSizeLogic> hmCohendResults = new HashMap<String, CohenDEffectSizeLogic>();
 
-	private static ArrayList<Double> getAveragesA() {
-		return alAveragesA;
-	}
-	private static ArrayList<Double> getAveragesB() {
-		return alAveragesB;
-	}
-	private static HashMap<String, CohenDEffectSizeLogic> getCohendResults() {
-		return hmCohendResults;
-	}
-	
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
 	private static PowerTableModel pwrTblMdlStats = new PowerTableModel(
@@ -173,9 +172,15 @@ public final class CohenDEffectSizeLogic {
 	}
 
 	public static int calcCohenDEffectSize(String sFilepathA, String sFilepathB, double dCohendAL) {
+		Boolean bFailed;
+		int iTotRcd, iCntA, iCntB;
+		double dVarA, dVarB, dPooledSD, dMeanA, dMeanB, dCohend;
+		BigDecimal bdCoVScoreA, bdCoVScoreB, bdCoVScoreRndA, bdCoVScoreRndB, bdErrPctA, bdErrPctRndA, bdErrPctB, bdErrPctRndB;
+		List<CSVRecord> aRcd;
+		MathMoments mathMoments;
+
 		// Load the data after getting the delimiter separator from current JMeter properties
 		char cDelim = SampleSaveConfiguration.staticConfig().getDelimiter().charAt(0);
-
 		Map<String, List<CSVRecord>> rcdHashMapA = FileServices.loadSamplesIntoHashMap(sFilepathA, cDelim);
 		if (rcdHashMapA.isEmpty()) {
 			return -1; // Nothing in Control, so abort...
@@ -189,6 +194,7 @@ public final class CohenDEffectSizeLogic {
 		alAveragesA.clear();
 		alAveragesB.clear();
 		hmCohendResults.clear();
+		pwrTblMdlStats.clearData();
 
 		/*
 		 * Processing of the data is done in multiple steps:
@@ -197,10 +203,8 @@ public final class CohenDEffectSizeLogic {
 		 * 3. Calculate Cohen's d between A and B
 		 */
 		// 1. Loop through the Labels in the dataset A
-		MathMoments mathMoments = null;
-		int iTotRcd;
 		for (String sLbl : rcdHashMapA.keySet()) {
-			List<CSVRecord> aRcd = rcdHashMapA.get(sLbl);
+			aRcd = rcdHashMapA.get(sLbl);
 			iTotRcd = aRcd.size();
 
 			// Get some stats for this set of samples
@@ -213,7 +217,7 @@ public final class CohenDEffectSizeLogic {
 			oCohenDEffectSizeLogic.fMeanA = mathMoments.getMean();
 			oCohenDEffectSizeLogic.fVarianceA = mathMoments.getVariance();
 
-			// Save this average for later processing oƒthe averages
+			// Save this average for later processing of all the averages
 			alAveragesA.add(mathMoments.getMean());
 			// Add the results of analysis to hashmap for later reference
 			hmCohendResults.put(sLbl, oCohenDEffectSizeLogic);
@@ -221,11 +225,14 @@ public final class CohenDEffectSizeLogic {
 
 		// 2. Repeat for dataset B
 		for (String sLbl : rcdHashMapB.keySet()) {
-			List<CSVRecord> aRcd = rcdHashMapB.get(sLbl);
+			aRcd = rcdHashMapB.get(sLbl);
 			iTotRcd = aRcd.size();
 
 			// Get some stats for this set of samples
 			mathMoments = MathMoments.crteMomentsFromRecordsList(aRcd);
+			// Save this mean for later processing
+			alAveragesB.add(mathMoments.getMean());
+
 			// Save some values for later analysis
 			// Is this Sample in the Control file?
 			if (hmCohendResults.containsKey(sLbl)) {
@@ -249,8 +256,6 @@ public final class CohenDEffectSizeLogic {
 		}
 		
 		// 3. Now calculate Cohen's d values for all keys and set the difference between the means
-		int iCntA, iCntB;
-		double dVarA, dVarB, dPooledSD, dMeanA, dMeanB, dCohenD;
 		for (String sLbl : hmCohendResults.keySet() ) {
 			// Only calculate if more than 2 samplers on each side
 			iCntA = hmCohendResults.get(sLbl).getCountA();
@@ -261,129 +266,128 @@ public final class CohenDEffectSizeLogic {
 				dMeanA = hmCohendResults.get(sLbl).getMeanA();
 				dMeanB = hmCohendResults.get(sLbl).getMeanB();
 				dPooledSD = calcPooledSD(iCntA, dVarA, iCntB, dVarB);
-				dCohenD = calcCohensD(dMeanA, dMeanB, dPooledSD);
+				dCohend = calcCohensd(dMeanA, dMeanB, dPooledSD);
 				// Update the stats
-				hmCohendResults.get(sLbl).setCohenD(dCohenD);
-				hmCohendResults.get(sLbl).setDiffRating(dCohenD);
+				hmCohendResults.get(sLbl).setCohenD(dCohend);
+				hmCohendResults.get(sLbl).setDiffRating(dCohend);
 			}
 		}
 
-// Ici
-
-			// Now compute the Apdex value
-			BigDecimal bdApdexScore = new BigDecimal(0.00);
-			bdApdexScore = new BigDecimal((double) (lSatisfiedCount + (lToleratingCount / 2.0)) / iTotRcd);
-			// Round to 2 decimal places as per Apdex specs
-			BigDecimal bdApdexScoreRnd = new BigDecimal(0.00);
-			bdApdexScoreRnd = bdApdexScore.setScale(2, RoundingMode.HALF_UP);
-			// Set rating as per Apdex specs
-			String sApdexRating = setApdexRating(bdApdexScoreRnd);
-
-			// Coeff Var processing
-			BigDecimal dCoVScore = new BigDecimal(0.00);
-			dCoVScore = new BigDecimal(mathMoments.getCoV());
-			// Similar to error rate, round to 4 decimal places
-			BigDecimal bdCoVScoreRnd = new BigDecimal(0.00);
-			bdCoVScoreRnd = dCoVScore.setScale(4, RoundingMode.HALF_UP);
-			String sCoVRating = setCoVRating(bdCoVScoreRnd);
-
-			// Finally update the statistics table
-			Boolean bSmallGroup = false;
-			if (iTotRcd < 100) {
-				bSmallGroup = true;
-			}
-			Boolean bFailed = false;
-			BigDecimal bdApdexAQL = new BigDecimal(dApdexAQL);
-			BigDecimal bdCoVALPct = new BigDecimal(dCoVALPct);
-			if ((bdApdexScoreRnd.compareTo(bdApdexAQL) == -1) || (bdCoVScoreRnd.compareTo(bdCoVALPct) != -1)) {
+		// 4. Update the statistics table for the UI in a natural order
+		TreeMap<String, CohenDEffectSizeLogic> tmResultsSorted = new TreeMap<>(hmCohendResults);
+		int iNbOfFailedElements = 0;
+		for (String sLbl : tmResultsSorted.keySet() ) {
+			dCohend = tmResultsSorted.get(sLbl).getCohenD().doubleValue();
+			bFailed = false;
+			if (dCohend >=  dCohendAL) {
 				bFailed = true;
-				iTotNbrOfFailedRcd++;
+				iNbOfFailedElements++;
 			}
+			// Round CoV & ErrPct to 4 decimal places
+			bdCoVScoreA = new BigDecimal(tmResultsSorted.get(sLbl).getCoVA());
+			bdCoVScoreRndA = bdCoVScoreA.setScale(4, RoundingMode.HALF_UP);
+			bdCoVScoreB = new BigDecimal(tmResultsSorted.get(sLbl).getCoVB());
+			bdCoVScoreRndB = bdCoVScoreB.setScale(4, RoundingMode.HALF_UP);
+			bdErrPctA = new BigDecimal(tmResultsSorted.get(sLbl).getErrPctA());
+			bdErrPctRndA = bdErrPctA.setScale(4, RoundingMode.HALF_UP);
+			bdErrPctB = new BigDecimal(tmResultsSorted.get(sLbl).getErrPctB());
+			bdErrPctRndB = bdErrPctB.setScale(4, RoundingMode.HALF_UP);
 
-			Object[] oArrayRowData = { sLbl, // Label
-					iTotRcd, // # Samples
-					Long.valueOf((long) mathMoments.getMean()), // Average
-					bdCoVScoreRnd.doubleValue(), // Cof of Var %
-					sCoVRating, // Cof of Var Rating
-					Double.valueOf(mathMoments.getErrorPercentage()), // # Error %
-					bdApdexScoreRnd.doubleValue(), // Apdex Value
-					dApdexTgtTholdSec, // Apdex Target
-					sApdexRating, // Apdex Rating
-					bSmallGroup, // shows a tick if number of samples < 100
-					bFailed }; // shows a tick if value less than the specified threshold
-
+			Object[] oArrayRowData = {
+					sLbl,
+					tmResultsSorted.get(sLbl).getCountA(),
+					tmResultsSorted.get(sLbl).getCountB(),
+					bdCoVScoreRndA.doubleValue(),
+					bdCoVScoreRndB.doubleValue(),
+					bdErrPctRndA.doubleValue(),
+					bdErrPctRndB.doubleValue(),
+					Long.valueOf((long)tmResultsSorted.get(sLbl).getMeanA()),
+					Long.valueOf((long)tmResultsSorted.get(sLbl).getMeanB()),
+					Math.abs(tmResultsSorted.get(sLbl).getCohenD().doubleValue()),
+					tmResultsSorted.get(sLbl).getDiffRating(),
+					bFailed};
 			pwrTblMdlStats.addRow(oArrayRowData);
 		}
-		return iTotNbrOfFailedRcd;
-	}
-	private static double formatTgtTHold(double dTgtThold) {
-		// Format the threshold as per Apdex specs
-		// For values greater than 10s, define the value to one second
-		if (dTgtThold >= 10.0) {
-			dTgtThold = Math.rint(dTgtThold);
+
+		// 6. Add last line for a global comparison of averages between A and B
+		// Same calculations on the averages for a global comparison
+		CohenDEffectSizeLogic oCohenDEffectSizeLogic = new CohenDEffectSizeLogic(AVERAGE_OF_AVERAGES);
+		iCntA = alAveragesA.size();
+		iCntB = alAveragesB.size();
+
+		mathMoments = MathMoments.crteMomentsFromMeansList(alAveragesA);
+		oCohenDEffectSizeLogic.iCountA = iCntA;
+		oCohenDEffectSizeLogic.fCoVA = mathMoments.getCoV();
+		oCohenDEffectSizeLogic.dErrPctA = mathMoments.getErrorPercentage();
+		oCohenDEffectSizeLogic.fMeanA = mathMoments.getMean();
+		oCohenDEffectSizeLogic.fVarianceA = mathMoments.getVariance();
+		mathMoments = MathMoments.crteMomentsFromMeansList(alAveragesB);
+		oCohenDEffectSizeLogic.iCountB = iCntB;
+		oCohenDEffectSizeLogic.fCoVB = mathMoments.getCoV();
+		oCohenDEffectSizeLogic.dErrPctB = mathMoments.getErrorPercentage();
+		oCohenDEffectSizeLogic.fMeanB = mathMoments.getMean();
+		oCohenDEffectSizeLogic.fVarianceB = mathMoments.getVariance();
+
+		if ((iCntA >= 2) && (iCntB >= 2)) {
+			dVarA = oCohenDEffectSizeLogic.getVarianceA();
+			dVarB = oCohenDEffectSizeLogic.getVarianceB();
+			dMeanA = oCohenDEffectSizeLogic.getMeanA();
+			dMeanB = oCohenDEffectSizeLogic.getMeanB();
+			dPooledSD = calcPooledSD(iCntA, dVarA, iCntB, dVarB);
+			dCohend = calcCohensd(dMeanA, dMeanB, dPooledSD);
+			// Update the stats
+			oCohenDEffectSizeLogic.setCohenD(dCohend);
+			oCohenDEffectSizeLogic.setDiffRating(dCohend);
 		}
-		// For values greater than 100s, define the value to 10 seconds
-		if (dTgtThold >= 100.0) {
-			dTgtThold = 10 * (Math.rint(dTgtThold / 10));
+		// Add the result to statistics table
+		dCohend = oCohenDEffectSizeLogic.getCohenD().doubleValue();
+		bFailed = false;
+		if (dCohend >=  dCohendAL) {
+			bFailed = true;
 		}
-		// For values greater than 1000s, follow the same two significant digits
-		// restriction
-		if (dTgtThold >= 1000.0) {
-			dTgtThold = 100 * (Math.rint(dTgtThold / 100));
-		}
-		return dTgtThold;
+		// Format Cov of averages to 4 digits
+		bdCoVScoreA = new BigDecimal(oCohenDEffectSizeLogic.getCoVA());
+		bdCoVScoreRndA = bdCoVScoreA.setScale(4, RoundingMode.HALF_UP);
+		bdCoVScoreB = new BigDecimal(oCohenDEffectSizeLogic.getCoVB());
+		bdCoVScoreRndB = bdCoVScoreB.setScale(4, RoundingMode.HALF_UP);
+
+		Object[] oArrayRowData = {
+				AVERAGE_OF_AVERAGES,
+				iCntA,
+				iCntB,
+				bdCoVScoreRndA.doubleValue(),
+				bdCoVScoreRndB.doubleValue(),
+				Double.valueOf(oCohenDEffectSizeLogic.getErrPctA()),
+                Double.valueOf(oCohenDEffectSizeLogic.getErrPctB()),
+				Long.valueOf((long)oCohenDEffectSizeLogic.getMeanA()),
+				Long.valueOf((long)oCohenDEffectSizeLogic.getMeanB()),
+				Math.abs(oCohenDEffectSizeLogic.getCohenD().doubleValue()),
+				oCohenDEffectSizeLogic.getDiffRating(),
+				bFailed};
+		pwrTblMdlStats.addRow(oArrayRowData);
+
+		return iNbOfFailedElements;
 	}
 
 	public static boolean isCohendALOutOfRange(double fCohendAL) {
 		return fCohendAL < 0;
 	}
-	public static String saveApdexStatsAsCsv(String sFilePath) {
+	public static String saveTableStatsAsCsv(String sFilePath) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexCoVScores.csv";
+		String sOutputFile = sFileDirectoryName + sFileBaseName + "_CompareStats.csv";
 		FileServices.saveTableAsCsv(sOutputFile, pwrTblMdlStats);
 		return sOutputFile;
 	}
 
-	public static String saveApdexStatsAsHtml(String sFilePath, String sApdexAQL, String sCoVALPct) {
+	public static String saveTableStatsAsHtml(String sFilePath, String sApdexAQL, String sCoVALPct) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexCoVScores.html";
+		String sOutputFile = sFileDirectoryName + sFileBaseName + "_CompareStats.html";
 		String sTableTitle = "Apdex & Coefficient of Variation Score Results (Apdex Acceptable Quality Level = "
 				+ sApdexAQL + ", CoV Acceptable Limit = " + sCoVALPct + ")";
 		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, 10);
 		return sOutputFile;
-	}
-
-	private static String setApdexRating(BigDecimal bdScore) {
-		// Sets the rating as per Apdex specs
-		String sRating = "Unacceptable"; // grey
-		if (bdScore.doubleValue() >= 0.94)
-			sRating = "Excellent"; // blue
-		else if (bdScore.doubleValue() >= 0.85)
-			sRating = "Good"; // green
-		else if (bdScore.doubleValue() >= 0.70)
-			sRating = "Fair"; // yellow
-		else if (bdScore.doubleValue() >= 0.50)
-			sRating = "Poor"; // red
-		return sRating;
-	}
-
-	private static String setCoVRating(BigDecimal bdScore) {
-		String sRating = "Low";
-		if (bdScore.doubleValue() >= 0.30)
-			sRating = "High"; // high if > 30%
-		else if (bdScore.doubleValue() >= 0.10)
-			sRating = "Moderate"; // moderate if > 10%
-		return sRating;
-	}
-
-	private static void setHmCohendResults(HashMap<String, CohenDEffectSizeLogic> hmCohendResults) {
-		CohenDEffectSizeLogic.hmCohendResults = hmCohendResults;
-	}
-
-	private static void setPwrTblMdlStats(PowerTableModel pwrTblMdlStats) {
-		CohenDEffectSizeLogic.pwrTblMdlStats = pwrTblMdlStats;
 	}
 
 	private static double calcPooledSD(int iN1, double dVariance1, int iN2, double dVariance2) {
@@ -391,10 +395,9 @@ public final class CohenDEffectSizeLogic {
 		return Math.sqrt(((iN1 - 1) * dVariance1 + (iN2 - 1) * dVariance2) / (iN1 + iN2 - 2));
 	}
 	
-	public static double calcCohensD(double iMean1, double dMean2, double dPooledSD) {
+	public static double calcCohensd(double dMean1, double dMean2, double dPooledSD) {
 		// returns Cohen's d, as per specs
-		return (dMean2 - iMean1) / dPooledSD;
+		return (dMean2 - dMean1) / dPooledSD;
 	}
-
 
 }

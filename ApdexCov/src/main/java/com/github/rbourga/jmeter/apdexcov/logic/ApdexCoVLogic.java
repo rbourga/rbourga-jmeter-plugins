@@ -54,6 +54,17 @@ public final class ApdexCoVLogic {
 	}
 
 	public static int computeApdexCoV(String sFilepath, double dApdexTgtTholdSec, double dApdexAQL, double dCoVALPct) {
+		int iTotRcd;
+		long lSatisfiedCount, lToleratingCount;
+		BigDecimal bdApdexScore, bdApdexScoreRnd, bdCoVScore, bdCoVScoreRnd, bdErrPct , bdErrPctRnd;
+		BigDecimal bdApdexAQL = new BigDecimal(dApdexAQL);
+		BigDecimal bdCoVALPct = new BigDecimal(dCoVALPct);
+		Boolean bSmallGroup, bFailed;
+		String sApdexRating, sCoVRating;
+		List<CSVRecord> aRcd;
+		MathMoments mathMoments;
+		Stream<CSVRecord> oPassedSamples, oSatisfiedSamples, oToleratingSamples;
+
 		// Load the data after getting the delimiter separator from current JMeter
 		// properties
 		char cDelim = SampleSaveConfiguration.staticConfig().getDelimiter().charAt(0);
@@ -61,6 +72,9 @@ public final class ApdexCoVLogic {
 		if (rcdHashMap.isEmpty()) {
 			return -1; // Nothing loaded, so abort...
 		}
+
+		// Clear any statistics from a previous analysis
+		pwrTblMdlStats.clearData();
 
 		// Format the threshold as per Apdex specs
 		dApdexTgtTholdSec = ApdexCoVLogic.formatTgtTHold(dApdexTgtTholdSec);
@@ -71,65 +85,60 @@ public final class ApdexCoVLogic {
 		int iTotNbrOfFailedRcd = 0;
 		// Loop through the Labels in the dataset
 		for (String sLbl : rcdHashMap.keySet()) {
-			List<CSVRecord> aRcd = rcdHashMap.get(sLbl);
-			int iTotRcd = aRcd.size();
+			aRcd = rcdHashMap.get(sLbl);
+			iTotRcd = aRcd.size();
 
 			// Get some stats for this set of samples
-			MathMoments mathMoments = MathMoments.crteMomentsFromRecordsList(aRcd);
+			mathMoments = MathMoments.crteMomentsFromRecordsList(aRcd);
 			/*
 			 * As per Apdex specs, all server failures must be counted as frustrated
 			 * regardless of their time. So we must calculate Apdex only on the successful
 			 * samples.
 			 */
-			Stream<CSVRecord> oPassedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("true"));
-
+			oPassedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("true"));
 			// Satisfied list of samples
-			Stream<CSVRecord> oSatisfiedSamples = oPassedSamples.filter(rcd -> Long.parseLong(rcd.get("elapsed")) <= lApdexTgtTholdMS); // 0 to T
-			long lSatisfiedCount  = oSatisfiedSamples.count();
-
+			oSatisfiedSamples = oPassedSamples.filter(rcd -> Long.parseLong(rcd.get("elapsed")) <= lApdexTgtTholdMS); // 0 to T
+			lSatisfiedCount  = oSatisfiedSamples.count();
 			// Tolerating list of samples: reset the successful stream as a stream can only be used once
 			oPassedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("true"));			
-			Stream<CSVRecord> oToleratingSamples = oPassedSamples.filter(rcd -> ((Long.parseLong(rcd.get("elapsed")) > lApdexTgtTholdMS) && ((Long.parseLong(rcd.get("elapsed")) < lApdexTolTholdMS)))); // T to F
-			long lToleratingCount = oToleratingSamples.count();
+			oToleratingSamples = oPassedSamples.filter(rcd -> ((Long.parseLong(rcd.get("elapsed")) > lApdexTgtTholdMS) && ((Long.parseLong(rcd.get("elapsed")) < lApdexTolTholdMS)))); // T to F
+			lToleratingCount = oToleratingSamples.count();
 
 			// Now compute the Apdex value
-			BigDecimal bdApdexScore = new BigDecimal(0.00);
 			bdApdexScore = new BigDecimal((double) (lSatisfiedCount + (lToleratingCount / 2.0)) / iTotRcd);
 			// Round to 2 decimal places as per Apdex specs
-			BigDecimal bdApdexScoreRnd = new BigDecimal(0.00);
 			bdApdexScoreRnd = bdApdexScore.setScale(2, RoundingMode.HALF_UP);
 			// Set rating as per Apdex specs
-			String sApdexRating = setApdexRating(bdApdexScoreRnd);
+			sApdexRating = setApdexRating(bdApdexScoreRnd);
 
 			// Coeff Var processing
-			BigDecimal dCoVScore = new BigDecimal(0.00);
-			dCoVScore = new BigDecimal(mathMoments.getCoV());
+			bdCoVScore = new BigDecimal(mathMoments.getCoV());
 			// Similar to error rate, round to 4 decimal places
-			BigDecimal bdCoVScoreRnd = new BigDecimal(0.00);
-			bdCoVScoreRnd = dCoVScore.setScale(4, RoundingMode.HALF_UP);
-			String sCoVRating = setCoVRating(bdCoVScoreRnd);
+			bdCoVScoreRnd = bdCoVScore.setScale(4, RoundingMode.HALF_UP);
+			sCoVRating = setCoVRating(bdCoVScoreRnd);
+
+			// ErrPct formatting: round to 4 decimal places
+			bdErrPct = new BigDecimal(mathMoments.getErrorPercentage());
+			bdErrPctRnd = bdErrPct.setScale(4, RoundingMode.HALF_UP);
 
 			// Finally update the statistics table
-			Boolean bSmallGroup = false;
+			bSmallGroup = false;
 			if (iTotRcd < 100) {
 				bSmallGroup = true;
 			}
-			Boolean bFailed = false;
-			BigDecimal bdApdexAQL = new BigDecimal(dApdexAQL);
-			BigDecimal bdCoVALPct = new BigDecimal(dCoVALPct);
+			bFailed = false;
 			if ((bdApdexScoreRnd.compareTo(bdApdexAQL) == -1) ||
 				(bdCoVScoreRnd.compareTo(bdCoVALPct) != -1)) {
 				bFailed = true;
 				iTotNbrOfFailedRcd++;
 			}
-
 			Object[] oArrayRowData = {
 					sLbl,		// Label
 					iTotRcd,	// # Samples
 					Long.valueOf((long) mathMoments.getMean()),	// Average
 					bdCoVScoreRnd.doubleValue(),	//Cof of Var %
 					sCoVRating,	// Cof of Var Rating
-                    Double.valueOf(mathMoments.getErrorPercentage()),	//# Error %
+					bdErrPctRnd.doubleValue(),	//# Error %
                     bdApdexScoreRnd.doubleValue(),	//Apdex Value
                     dApdexTgtTholdSec,	// Apdex Target
                     sApdexRating,    // Apdex Rating
@@ -194,7 +203,7 @@ public final class ApdexCoVLogic {
 		return dValue < 0.1;
 	}
 
-	public static String saveApdexStatsAsCsv(String sFilePath) {
+	public static String saveTableStatsAsCsv(String sFilePath) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexCoVScores.csv";
@@ -202,7 +211,7 @@ public final class ApdexCoVLogic {
 		return sOutputFile;
 	}
 
-	public static String saveApdexStatsAsHtml(String sFilePath, String sApdexAQL, String sCoVALPct) {
+	public static String saveTableStatsAsHtml(String sFilePath, String sApdexAQL, String sCoVALPct) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexCoVScores.html";

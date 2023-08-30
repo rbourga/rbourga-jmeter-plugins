@@ -102,7 +102,7 @@ public class ApdexCoVTool extends AbstractCMDTool{
 			System.out.println("No samplers found in input file - please check your file.");
 		} else {
 			// Save Apdex results in an HTML file for import in DevOps tool later on
-			String htmlFilename = ApdexCoVLogic.saveApdexStatsAsHtml(sInFile, sApdexAQL, sCoVALPct);
+			String htmlFilename = ApdexCoVLogic.saveTableStatsAsHtml(sInFile, sApdexAQL, sCoVALPct);
 			System.out.println("Results saved in " + htmlFilename);
 		}
 		return iResult;

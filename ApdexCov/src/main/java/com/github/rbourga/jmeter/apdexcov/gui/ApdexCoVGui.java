@@ -212,7 +212,7 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 	
 	private String saveDataModTblAsCsv() {
 		String sInFile = filePnl.getFilename();
-		return ApdexCoVLogic.saveApdexStatsAsCsv(sInFile);
+		return ApdexCoVLogic.saveTableStatsAsCsv(sInFile);
 	}
 
 	private void actionCalc() {
@@ -251,10 +251,6 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 			GuiPackage.showErrorMessage("Input file is empty or contains invalid data - please enter a valid results file.", "Input file error");
 			return;
 		}
-
-		// Now that preliminary checks have been done, let's do the job...
-		// Clear any statistics from a previous analysis
-		ApdexCoVLogic.getPwrTblMdelStats().clearData();
 
 		// Now, process the data
 		int iResult = ApdexCoVLogic.computeApdexCoV(sInFile, fApdexTgtTholdSec, fApdexAQL, fCoVALPct);
