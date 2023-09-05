@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -101,8 +102,9 @@ public final class FileServices {
 		 * true: orange
 		 * false: green
 		 */
-		String sColName, sHtmlOut;
+		String sColName, sHtmlOut, sRoundedPct;
 		double dPctValue;
+		DecimalFormat df4digits = new DecimalFormat("#.####");
 
 		// Create empty HTML shell
 		Document docHtml = Document.createShell("");
@@ -138,7 +140,9 @@ public final class FileServices {
 				sColName = tblMdl.getColumnName(j);
 				if (sColName.contains("%")) {
 					dPctValue = ((double) tblMdl.getValueAt(i, j)) * 100;
-					sHtmlOut = dPctValue + "%";
+					// Only keep 4 digits
+					sRoundedPct = df4digits.format(dPctValue);
+					sHtmlOut = sRoundedPct + "%";
 				}
 				eTd.text(sHtmlOut);
 				eTrData.appendChild(eTd);

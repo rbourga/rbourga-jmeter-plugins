@@ -110,10 +110,10 @@ public class ApdexCoVTool extends AbstractCMDTool{
 
 	@Override
 	protected void showHelp(PrintStream os) {
-		os.println("Options for tool 'ApdexCoV': --input-file <filenameIn>"
+		os.println("Options for tool 'ApdexCoV': --input-file <filenameIn> "
 				+ "["
-				+ "--apdex-tgt-thold-secs <satisified treshold value in secs (greater than 0.1)>"
-				+ "--apdex-aql <min Apdex score to pass (between 0 and 1)>]"
+				+ "--apdex-tgt-thold-secs <satisified treshold value in secs (greater than 0.1)> "
+				+ "--apdex-aql <min Apdex score to pass (between 0 and 1)> "
 				+ "--cov-alim-pct <Coefficient of Variation acceptable limit percentage value to pass>"
 				+ "]");				
 	}

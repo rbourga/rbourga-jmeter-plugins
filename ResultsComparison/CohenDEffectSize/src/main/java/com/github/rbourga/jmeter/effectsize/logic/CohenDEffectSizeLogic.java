@@ -380,13 +380,13 @@ public final class CohenDEffectSizeLogic {
 		return sOutputFile;
 	}
 
-	public static String saveTableStatsAsHtml(String sFilePath, String sApdexAQL, String sCoVALPct) {
+	public static String saveTableStatsAsHtml(String sFilePath, String sCohensdAL) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + "_CompareStats.html";
-		String sTableTitle = "Apdex & Coefficient of Variation Score Results (Apdex Acceptable Quality Level = "
-				+ sApdexAQL + ", CoV Acceptable Limit = " + sCoVALPct + ")";
-		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, 10);
+		String sTableTitle = "Results Comparison (Cohen's d Acceptable Limit = "
+				+ sCohensdAL + ")";
+		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, 11);
 		return sOutputFile;
 	}
 
