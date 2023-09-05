@@ -101,6 +101,9 @@ public final class FileServices {
 		 * true: orange
 		 * false: green
 		 */
+		String sColName, sHtmlOut;
+		double dPctValue;
+
 		// Create empty HTML shell
 		Document docHtml = Document.createShell("");
 		Element eBdy = docHtml.body();
@@ -130,7 +133,14 @@ public final class FileServices {
 			}
 			for (int j = 0; j < colCnt; j++) {
 				Element eTd = docHtml.createElement("td");
-				eTd.text(tblMdl.getValueAt(i, j).toString());
+				sHtmlOut = tblMdl.getValueAt(i, j).toString();
+				// Convert to percentage if needed
+				sColName = tblMdl.getColumnName(j);
+				if (sColName.contains("%")) {
+					dPctValue = ((double) tblMdl.getValueAt(i, j)) * 100;
+					sHtmlOut = dPctValue + "%";
+				}
+				eTd.text(sHtmlOut);
 				eTrData.appendChild(eTd);
 			}
 			eTbl.appendChild(eTrData);
