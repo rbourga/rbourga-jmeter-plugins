@@ -1,9 +1,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.github.rbourga.jmeter.apdexcvcalc</groupId>
-  <artifactId>jmeter-plugins-apdexcvcalc</artifactId>
+  <groupId>com.github.rbourga.jmeter</groupId>
+  <artifactId>jmeter-plugins-apdexcovcalculator</artifactId>
   <version>1.0.0</version>
-  <name>Apdex &amp; Coefficient of Variation Calculator</name>
+  <name>Quality Analysis</name>
   <description>Calculates the Apdex score of Samplers for a given Satisfied Threshold as well as their Coefficient of Variation.</description>
   <properties>
   	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

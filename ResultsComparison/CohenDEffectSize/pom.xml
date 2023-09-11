@@ -1,14 +1,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.github.rbourga.jmeter.effectsizes</groupId>
-  <artifactId>jmeter-plugins-resultscomp</artifactId>
+  <groupId>com.github.rbourga.jmeter</groupId>
+  <artifactId>jmeter-plugins-cohendeffectsize</artifactId>
   <version>1.0.0</version>
   <properties>
   	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   	<maven.compiler.source>1.8</maven.compiler.source>
   	<maven.compiler.target>1.8</maven.compiler.target>
   </properties>
-  <name>Effect Size measurement</name>
+  <name>Results Comparison</name>
   <description>Measures the magnitude of the difference between two test results using Cohen's d.</description>
   <dependencies>
   	<dependency>
@@ -53,4 +53,8 @@
 		<version>1.0.0</version>
 	</dependency>
   </dependencies>
+  <scm>
+	<url>https://github.com/rbourga/rbourga-jmeter-plugins</url>
+	<developerConnection>Robert Bourgault du Coudray</developerConnection>
+  </scm>
 </project>

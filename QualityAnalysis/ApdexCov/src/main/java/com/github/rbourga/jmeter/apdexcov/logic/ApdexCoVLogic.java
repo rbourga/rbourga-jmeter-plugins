@@ -65,8 +65,7 @@ public final class ApdexCoVLogic {
 		MathMoments mathMoments;
 		Stream<CSVRecord> oPassedSamples, oSatisfiedSamples, oToleratingSamples;
 
-		// Load the data after getting the delimiter separator from current JMeter
-		// properties
+		// Load the data after getting the delimiter separator from current JMeter properties
 		char cDelim = SampleSaveConfiguration.staticConfig().getDelimiter().charAt(0);
 		Map<String, List<CSVRecord>> rcdHashMap = FileServices.loadSamplesIntoHashMap(sFilepath, cDelim);
 		if (rcdHashMap.isEmpty()) {

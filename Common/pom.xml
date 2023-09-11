@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.github.rbourga.jmeter.common</groupId>
+  <groupId>com.github.rbourga.jmeter</groupId>
   <version>1.0.0</version>
   <dependencies>
   	<dependency>
@@ -24,7 +24,7 @@
   		<version>1.16.1</version>
   	</dependency>
   </dependencies>
-  <artifactId>rbourga-jmeter-comm</artifactId>
+  <artifactId>jmeter-plugins-comm</artifactId>
   <properties>
   	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   	<maven.compiler.source>1.8</maven.compiler.source>
