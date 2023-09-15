@@ -18,6 +18,7 @@ import javax.swing.table.DefaultTableModel;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.jmeter.save.CSVSaveService;
 import org.jsoup.nodes.Document;
@@ -74,6 +75,37 @@ public final class FileServices {
 			e.printStackTrace();
 		}
 		return rcdHashMap;
+	}
+
+	public static void saveCSVRecsToFile(String sFilePath, List<CSVRecord> listCSVRecs, char cDelim) {
+		CSVFormat csvFmt;
+
+		if (cDelim == ',') {
+			// Comma separated format
+			csvFmt = CSVFormat.RFC4180;
+		} else {
+			// Tab-delimited format
+			csvFmt = CSVFormat.TDF;
+		}
+
+		try (FileWriter fileWriter = new FileWriter(sFilePath);
+			CSVPrinter csvPrinter = new CSVPrinter(fileWriter, csvFmt)) {
+
+			// Write the header to the file
+			csvPrinter.printRecord(listCSVRecs.get(0).getParser().getHeaderNames());
+
+			// Write the records to the file
+			for (CSVRecord rcd : listCSVRecs) {
+				csvPrinter.printRecord(rcd);
+			}
+
+			csvPrinter.flush();
+			csvPrinter.close();
+
+		} catch (IOException ioE) {
+			// TODO Auto-generated catch block
+			ioE.printStackTrace();
+		}
 	}
 
 	public static void saveTableAsCsv(String sFilePath, DefaultTableModel tblMdl) {

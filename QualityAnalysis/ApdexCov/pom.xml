@@ -37,6 +37,11 @@
 		<scope>test</scope>
 	</dependency>
 	<dependency>
+		<groupId>commons-io</groupId>
+		<artifactId>commons-io</artifactId>
+		<version>2.13.0</version>
+	</dependency>
+	<dependency>
 		<groupId>org.apache.commons</groupId>
 		<artifactId>commons-csv</artifactId>
 		<version>1.10.0</version>
@@ -46,21 +51,16 @@
 		<artifactId>commons-lang3</artifactId>
 		<version>3.13.0</version>
   	</dependency>
-  	<dependency>
-  		<groupId>org.apache.directory.studio</groupId>
-  		<artifactId>org.apache.commons.io</artifactId>
-  		<version>2.4</version>
-  	</dependency>
 	<dependency>
 		<groupId>org.junit.jupiter</groupId>
 		<artifactId>junit-jupiter-api</artifactId>
 		<version>5.10.0</version>
 		<scope>test</scope>
 	</dependency>
-  	<dependency>
-  		<groupId>com.github.rbourga.jmeter.common</groupId>
-  		<artifactId>rbourga-jmeter-comm</artifactId>
-  		<version>1.0.0</version>
-  	</dependency>
+	<dependency>
+		<groupId>com.github.rbourga.jmeter</groupId>
+		<artifactId>jmeter-plugins-comm</artifactId>
+		<version>1.0.0</version>
+	</dependency>
   </dependencies>
 </project>
