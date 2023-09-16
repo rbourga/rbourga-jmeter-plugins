@@ -73,6 +73,7 @@ public final class TukeyOutlierDetectorLogic {
 		pwrTblMdlStats.clearData();
 
 		// 2. Now, process the data points...
+		int iFailedLblCnt = 0;
 		// Loop through the Labels in the dataset
 		for (String sLbl : rcdHashMap.keySet()) {
 			aLblRcd = rcdHashMap.get(sLbl);
@@ -132,6 +133,7 @@ public final class TukeyOutlierDetectorLogic {
 			bFailed = false;
 			if (bdUpprOutlierPctRnd.compareTo(bdMaxRemPct) != -1) {
 				bFailed = true;
+				iFailedLblCnt++;
 			}
 			// Update the statistics table
 			Object[] oArrayRowData = { sLbl, // Label
@@ -145,24 +147,19 @@ public final class TukeyOutlierDetectorLogic {
 			pwrTblMdlStats.addRow(oArrayRowData);
 		}
 
-		// Save the outliers in a separate file for post analysis
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilepath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilepath);
 		String sFileExtension = FilenameUtils.getExtension(sFilepath);
-		if (mergedOutliers != null) {
-			// Filename containing the excluded samplers only
-			sOutputFile = sFileDirectoryName + sFileBaseName + "_UpperOutliers." + sFileExtension;
-			FileServices.saveCSVRecsToFile(sOutputFile, mergedOutliers, cDelim);
-			iUpprOutlierCnt = mergedOutliers.size();
-		} else {
-			iUpprOutlierCnt = 0;
-		}
-
-		// Save cleansed results in a file for post analysis
+		// Save cleansed results in a file for post statistics
 		sOutputFile = sFileDirectoryName + sFileBaseName + "_WithoutUpperOutliers." + sFileExtension;
 		FileServices.saveCSVRecsToFile(sOutputFile, mergedWithoutOutliers, cDelim);
+		// Save the outliers in a separate file for post analysis
+		if (mergedOutliers != null) {
+			sOutputFile = sFileDirectoryName + sFileBaseName + "_UpperOutliers." + sFileExtension;
+			FileServices.saveCSVRecsToFile(sOutputFile, mergedOutliers, cDelim);
+		}
 
-		return iUpprOutlierCnt;
+		return iFailedLblCnt;
 	}
 
 	private static double getUpprFence(List<CSVRecord> aRcd, double fTukeyK) {

@@ -275,14 +275,16 @@ public final class CohenDEffectSizeLogic {
 
 		// 4. Update the statistics table for the UI in a natural order
 		TreeMap<String, CohenDEffectSizeLogic> tmResultsSorted = new TreeMap<>(hmCohendResults);
-		int iNbOfFailedElements = 0;
+		int iFailedLblCnt = 0;
 		for (String sLbl : tmResultsSorted.keySet() ) {
+
 			dCohend = tmResultsSorted.get(sLbl).getCohenD().doubleValue();
 			bFailed = false;
 			if (dCohend >=  dCohendAL) {
 				bFailed = true;
-				iNbOfFailedElements++;
+				iFailedLblCnt++;
 			}
+
 			// Round CoV & ErrPct to 4 decimal places
 			bdCoVScoreA = new BigDecimal(tmResultsSorted.get(sLbl).getCoVA());
 			bdCoVScoreRndA = bdCoVScoreA.setScale(4, RoundingMode.HALF_UP);
@@ -292,7 +294,6 @@ public final class CohenDEffectSizeLogic {
 			bdErrPctRndA = bdErrPctA.setScale(4, RoundingMode.HALF_UP);
 			bdErrPctB = new BigDecimal(tmResultsSorted.get(sLbl).getErrPctB());
 			bdErrPctRndB = bdErrPctB.setScale(4, RoundingMode.HALF_UP);
-
 			Object[] oArrayRowData = {
 					sLbl,
 					tmResultsSorted.get(sLbl).getCountA(),
@@ -366,7 +367,7 @@ public final class CohenDEffectSizeLogic {
 				bFailed};
 		pwrTblMdlStats.addRow(oArrayRowData);
 
-		return iNbOfFailedElements;
+		return iFailedLblCnt;
 	}
 
 	public static boolean isCohendALOutOfRange(double fCohendAL) {

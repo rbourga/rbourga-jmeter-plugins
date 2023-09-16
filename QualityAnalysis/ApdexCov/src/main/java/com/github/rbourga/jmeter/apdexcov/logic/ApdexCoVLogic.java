@@ -81,7 +81,7 @@ public final class ApdexCoVLogic {
 		// Now process the data points
 		long lApdexTgtTholdMS = (long) (dApdexTgtTholdSec * 1000); // Convert to ms as JMeter times are stored in ms
 		long lApdexTolTholdMS = 4 * lApdexTgtTholdMS; // Tolerate = 4xTarget, as per Apdex specs
-		int iTotNbrOfFailedRcd = 0;
+		int iFailedLblCnt = 0;
 		// Loop through the Labels in the dataset
 		for (String sLbl : rcdHashMap.keySet()) {
 			aRcd = rcdHashMap.get(sLbl);
@@ -129,7 +129,7 @@ public final class ApdexCoVLogic {
 			if ((bdApdexScoreRnd.compareTo(bdApdexAQL) == -1) ||
 				(bdCoVScoreRnd.compareTo(bdCoVALPct) != -1)) {
 				bFailed = true;
-				iTotNbrOfFailedRcd++;
+				iFailedLblCnt++;
 			}
 			Object[] oArrayRowData = {
 					sLbl,		// Label
@@ -146,7 +146,7 @@ public final class ApdexCoVLogic {
 
 			pwrTblMdlStats.addRow(oArrayRowData);
 		}
-		return iTotNbrOfFailedRcd;
+		return iFailedLblCnt;
 	}
 
 	private static double formatTgtTHold(double dTgtThold) {
