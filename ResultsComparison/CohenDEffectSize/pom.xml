@@ -48,8 +48,8 @@
 		<version>3.13.0</version>
 	</dependency>
 	<dependency>
-		<groupId>com.github.rbourga.jmeter.common</groupId>
-		<artifactId>rbourga-jmeter-comm</artifactId>
+		<groupId>com.github.rbourga.jmeter</groupId>
+		<artifactId>jmeter-plugins-comm</artifactId>
 		<version>1.0.0</version>
 	</dependency>
   </dependencies>

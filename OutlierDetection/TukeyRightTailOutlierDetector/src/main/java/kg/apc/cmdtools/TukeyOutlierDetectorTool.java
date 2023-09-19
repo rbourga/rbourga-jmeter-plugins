@@ -67,10 +67,10 @@ public class TukeyOutlierDetectorTool extends AbstractCMDTool{
 		}
 		// Check tukey-k parameter
 		if (!(NumberUtils.isCreatable(sTukeyK))) {
-			throw new IllegalArgumentException("Tukey K value invalid.");
+			throw new IllegalArgumentException("Tukey k value invalid.");
 		}
 		if (!(sTukeyK.equals("1.5")) && !(sTukeyK.equals("3")) && !(sTukeyK.equals("3.0"))) {
-			throw new IllegalArgumentException("Unacceptable Tuke K value (only 1.5 or 3 accepted).");
+			throw new IllegalArgumentException("Unacceptable Tukey k value (only 1.5 or 3 accepted).");
 		}
 		// Check rem-alim-pct parameter
 		if (!(NumberUtils.isCreatable(sRemALPct))) {
@@ -95,11 +95,10 @@ public class TukeyOutlierDetectorTool extends AbstractCMDTool{
 
 	@Override
 	protected void showHelp(PrintStream os) {
-		os.println("Options for tool 'ApdexCoV': --input-file <filenameIn> "
+		os.println("Options for tool 'TukeyOutlierDetector': --input-file <filenameIn> "
 				+ "["
-				+ "--apdex-tgt-thold-secs <satisified treshold value in secs (greater than 0.1)> "
-				+ "--apdex-aql <min Apdex score to pass (between 0 and 1)> "
-				+ "--cov-alim-pct <Coefficient of Variation acceptable limit percentage value to pass>"
+				+ "--tukey-k <k (1.5 or 3, default = 3)> "
+				+ "--rem-alim-pct <Removal acceptable limit percentage value to pass (default = 20%)>"
 				+ "]");				
 	}
 }

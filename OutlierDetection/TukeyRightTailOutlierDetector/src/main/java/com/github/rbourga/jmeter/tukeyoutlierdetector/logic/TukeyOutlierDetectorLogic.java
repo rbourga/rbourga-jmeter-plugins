@@ -211,7 +211,7 @@ public final class TukeyOutlierDetectorLogic {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + "_UpTrimSum.html";
-		String sTableTitle = "Upper Outliers Removal Summary (Tukey K = "
+		String sTableTitle = "Upper Outliers Removal Summary (Tukey k = "
 				+ sTukeyK + ", Removal Acceptable Limit = " + sRemALPct + ")";
 		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
 		return sOutputFile;
