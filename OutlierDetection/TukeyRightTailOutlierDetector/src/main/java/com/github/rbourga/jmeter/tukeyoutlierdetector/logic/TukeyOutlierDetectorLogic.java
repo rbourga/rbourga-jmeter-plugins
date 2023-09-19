@@ -43,6 +43,7 @@ public final class TukeyOutlierDetectorLogic {
 					Boolean.class, // Small Group
 					Boolean.class // Failed
 			});
+	private static int PASSFAIL_TEST_COLNBR = 7;	// Position of Failed column in the table
 
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
@@ -52,7 +53,7 @@ public final class TukeyOutlierDetectorLogic {
 		/*
 		 * Will remove only upper outliers (which are bigger than the upper boundary).
 		 */
-		boolean bUpperRemoved, bSmallGroup, bFailed;
+		boolean bIsUpperRemoved, bIsSmallGroup, bIsFailed;
 		int iInitLblCnt, iUpprOutlierCnt;
 		double fUpFence;
 		double fUpFenceMin;
@@ -102,7 +103,7 @@ public final class TukeyOutlierDetectorLogic {
 							.filter(rcd -> Double.parseDouble(rcd.get("elapsed")) > fUpFenceFinal)
 							.collect(Collectors.toList());
 					if (upprOutliers.size() == 0) {
-						bUpperRemoved = false;
+						bIsUpperRemoved = false;
 					} else {
 						// Outliers detected: save them in a separate list and repeat
 						mergedOutliers = addCSVList2To1(mergedOutliers, upprOutliers);
@@ -110,9 +111,9 @@ public final class TukeyOutlierDetectorLogic {
 						aLblRcd = aLblRcd.stream()
 								.filter(rcd -> Double.parseDouble(rcd.get("elapsed")) <= fUpFenceFinal)
 								.collect(Collectors.toList());
-						bUpperRemoved = true;
+						bIsUpperRemoved = true;
 					}
-				} while (bUpperRemoved);
+				} while (bIsUpperRemoved);
 
 				// Outliers removed, save the new cleansed list
 				mergedWithoutOutliers = addCSVList2To1(mergedWithoutOutliers, aLblRcd);
@@ -122,28 +123,29 @@ public final class TukeyOutlierDetectorLogic {
 			}
 
 			// Save the results in the table
-			bSmallGroup = false;
+			bIsSmallGroup = false;
 			if (aLblRcd.size() < 100) {
-				bSmallGroup = true;
+				bIsSmallGroup = true;
 			}
 			iUpprOutlierCnt = iInitLblCnt - aLblRcd.size();
 			BigDecimal bdUpprOutlierPct = new BigDecimal((double) iUpprOutlierCnt / (double) iInitLblCnt);
 			// Round % to 4 decimal places
 			BigDecimal bdUpprOutlierPctRnd = bdUpprOutlierPct.setScale(4, RoundingMode.HALF_UP);
-			bFailed = false;
+			bIsFailed = false;
 			if (bdUpprOutlierPctRnd.compareTo(bdMaxRemPct) != -1) {
-				bFailed = true;
+				bIsFailed = true;
 				iFailedLblCnt++;
 			}
 			// Update the statistics table
-			Object[] oArrayRowData = { sLbl, // Label
+			Object[] oArrayRowData = {
+					sLbl, // Label
 					iInitLblCnt, // # Samples
 					Long.valueOf((long) mathMoments.getMean()), // Average
 					fUpFenceMin, // Upper Fence
 					iUpprOutlierCnt, // # Removed
 					bdUpprOutlierPctRnd.doubleValue(), // Removed %
-					bSmallGroup, // Small Group
-					bFailed };
+					bIsSmallGroup, // Small Group
+					bIsFailed };
 			pwrTblMdlStats.addRow(oArrayRowData);
 		}
 
@@ -200,18 +202,18 @@ public final class TukeyOutlierDetectorLogic {
 	public static String saveTableStatsAsCsv(String sFilePath) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexCoVScores.csv";
+		String sOutputFile = sFileDirectoryName + sFileBaseName + "_UpprOutlierRemStats.csv";
 		FileServices.saveTableAsCsv(sOutputFile, pwrTblMdlStats);
 		return sOutputFile;
 	}
 
-	public static String saveTableStatsAsHtml(String sFilePath, String sApdexAQL, String sCoVALPct) {
+	public static String saveTableStatsAsHtml(String sFilePath, String sTukeyK, String sRemALPct) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexCoVScores.html";
-		String sTableTitle = "Apdex & Coefficient of Variation Score Results (Apdex Acceptable Quality Level = "
-				+ sApdexAQL + ", CoV Acceptable Limit = " + sCoVALPct + ")";
-		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, 10);
+		String sOutputFile = sFileDirectoryName + sFileBaseName + "_UpTrimSum.html";
+		String sTableTitle = "Upper Outliers Removal Summary (Tukey K = "
+				+ sTukeyK + ", Removal Acceptable Limit = " + sRemALPct + ")";
+		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
 		return sOutputFile;
 	}
 }

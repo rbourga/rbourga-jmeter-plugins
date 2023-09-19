@@ -166,13 +166,14 @@ public final class CohenDEffectSizeLogic {
 					String.class, // Diff Rating
 					Boolean.class // Failed
 			});
+	private static int PASSFAIL_TEST_COLNBR = 11;	// Position of Failed column in the table
 	
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
 	}
 
 	public static int calcCohenDEffectSize(String sFilepathA, String sFilepathB, double dCohendAL) {
-		Boolean bFailed;
+		Boolean bIsFailed;
 		int iTotRcd, iCntA, iCntB;
 		double dVarA, dVarB, dPooledSD, dMeanA, dMeanB, dCohend;
 		BigDecimal bdCoVScoreA, bdCoVScoreB, bdCoVScoreRndA, bdCoVScoreRndB, bdErrPctA, bdErrPctRndA, bdErrPctB, bdErrPctRndB;
@@ -279,9 +280,9 @@ public final class CohenDEffectSizeLogic {
 		for (String sLbl : tmResultsSorted.keySet() ) {
 
 			dCohend = tmResultsSorted.get(sLbl).getCohenD().doubleValue();
-			bFailed = false;
+			bIsFailed = false;
 			if (dCohend >=  dCohendAL) {
-				bFailed = true;
+				bIsFailed = true;
 				iFailedLblCnt++;
 			}
 
@@ -306,7 +307,7 @@ public final class CohenDEffectSizeLogic {
 					Long.valueOf((long)tmResultsSorted.get(sLbl).getMeanB()),
 					Math.abs(tmResultsSorted.get(sLbl).getCohenD().doubleValue()),
 					tmResultsSorted.get(sLbl).getDiffRating(),
-					bFailed};
+					bIsFailed};
 			pwrTblMdlStats.addRow(oArrayRowData);
 		}
 
@@ -342,9 +343,9 @@ public final class CohenDEffectSizeLogic {
 		}
 		// Add the result to statistics table
 		dCohend = oCohenDEffectSizeLogic.getCohenD().doubleValue();
-		bFailed = false;
+		bIsFailed = false;
 		if (dCohend >=  dCohendAL) {
-			bFailed = true;
+			bIsFailed = true;
 		}
 		// Format Cov of averages to 4 digits
 		bdCoVScoreA = new BigDecimal(oCohenDEffectSizeLogic.getCoVA());
@@ -364,7 +365,7 @@ public final class CohenDEffectSizeLogic {
 				Long.valueOf((long)oCohenDEffectSizeLogic.getMeanB()),
 				Math.abs(oCohenDEffectSizeLogic.getCohenD().doubleValue()),
 				oCohenDEffectSizeLogic.getDiffRating(),
-				bFailed};
+				bIsFailed};
 		pwrTblMdlStats.addRow(oArrayRowData);
 
 		return iFailedLblCnt;
@@ -387,7 +388,7 @@ public final class CohenDEffectSizeLogic {
 		String sOutputFile = sFileDirectoryName + sFileBaseName + "_CompareStats.html";
 		String sTableTitle = "Results Comparison (Cohen's d Acceptable Limit = "
 				+ sCohensdAL + ")";
-		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, 11);
+		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
 		return sOutputFile;
 	}
 

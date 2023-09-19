@@ -48,6 +48,8 @@ public final class ApdexCoVLogic {
 					Boolean.class,	// Small Group
 					Boolean.class	// Failed
 					});
+	private static int PASSFAIL_TEST_COLNBR = 10;	// Position of Failed column in the table
+
 
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
@@ -59,7 +61,7 @@ public final class ApdexCoVLogic {
 		BigDecimal bdApdexScore, bdApdexScoreRnd, bdCoVScore, bdCoVScoreRnd, bdErrPct , bdErrPctRnd;
 		BigDecimal bdApdexAQL = new BigDecimal(dApdexAQL);
 		BigDecimal bdCoVALPct = new BigDecimal(dCoVALPct);
-		Boolean bSmallGroup, bFailed;
+		Boolean bIsSmallGroup, bIsFailed;
 		String sApdexRating, sCoVRating;
 		List<CSVRecord> aRcd;
 		MathMoments mathMoments;
@@ -121,14 +123,14 @@ public final class ApdexCoVLogic {
 			bdErrPctRnd = bdErrPct.setScale(4, RoundingMode.HALF_UP);
 
 			// Finally update the statistics table
-			bSmallGroup = false;
+			bIsSmallGroup = false;
 			if (iTotRcd < 100) {
-				bSmallGroup = true;
+				bIsSmallGroup = true;
 			}
-			bFailed = false;
+			bIsFailed = false;
 			if ((bdApdexScoreRnd.compareTo(bdApdexAQL) == -1) ||
 				(bdCoVScoreRnd.compareTo(bdCoVALPct) != -1)) {
-				bFailed = true;
+				bIsFailed = true;
 				iFailedLblCnt++;
 			}
 			Object[] oArrayRowData = {
@@ -141,8 +143,8 @@ public final class ApdexCoVLogic {
                     bdApdexScoreRnd.doubleValue(),	//Apdex Value
                     dApdexTgtTholdSec,	// Apdex Target
                     sApdexRating,    // Apdex Rating
-                    bSmallGroup,    // shows a tick if number of samples < 100
-					bFailed };	// shows a tick if value less than the specified threshold
+                    bIsSmallGroup,    // shows a tick if number of samples < 100
+					bIsFailed };	// shows a tick if value less than the specified threshold
 
 			pwrTblMdlStats.addRow(oArrayRowData);
 		}
@@ -215,7 +217,7 @@ public final class ApdexCoVLogic {
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexCoVScores.html";
 		String sTableTitle = "Apdex & Coefficient of Variation Score Results (Apdex Acceptable Quality Level = " + sApdexAQL + ", CoV Acceptable Limit = " + sCoVALPct + ")";
-		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, 10);
+		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
 		return sOutputFile;
 	}
 }
