@@ -54,7 +54,8 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 	// Objects for the UI Panels
 	// Buttons for Tukey's Control Panel
 	private JRadioButton jRadioBtn_1_5 = new JRadioButton("1.5 (remove all upper outliers)", false);
-	private JRadioButton jRadioBtn_3 = new JRadioButton("3 (remove only extreme upper outliers)", true);
+	private JRadioButton jRadioBtn_3 = new JRadioButton("3 (remove only extreme upper outliers)", false);
+	private JRadioButton jRadioBtn_carling = new JRadioButton("Carling (dynamic k)", true);
 	private final JLabel jLblRemAL = new JLabel("Removal Acceptable Limit (%) ");
 	private JFormattedTextField jFTxtFldRemAL;
 	private FilePanel filePnl;
@@ -80,9 +81,11 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 		ButtonGroup btnGrp = new ButtonGroup();
 		btnGrp.add(jRadioBtn_1_5);
 		btnGrp.add(jRadioBtn_3);
+		btnGrp.add(jRadioBtn_carling);
 		jPnlTukey.setLayout(new FlowLayout());
 		jPnlTukey.add(jRadioBtn_1_5);
 		jPnlTukey.add(jRadioBtn_3);
+		jPnlTukey.add(jRadioBtn_carling);
 		jPnlTukey.setBorder(BorderFactory.createTitledBorder("Tukey's constant k"));
 
 		// Panel for Failure criteria option
@@ -223,9 +226,11 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 		}
 
 		// Set Tukey's option that was selected
-		double fTukeyK = 3.0;
+		double fTukeyK = 0.0;	// We use 0 to indicate Carling's option was selected
 		if (jRadioBtn_1_5.isSelected()) {
 			fTukeyK = 1.5;
+		} else if (jRadioBtn_3.isSelected()) {
+			fTukeyK = 3.0;
 		}
 
 		// Now, process the data

@@ -29,7 +29,7 @@ public class TukeyOutlierDetectorTool extends AbstractCMDTool{
 		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool ApdexCoV [--help]"
 		 */
 		String sInFile = null;
-		String sTukeyK = "3";	// 3 by default
+		String sTukeyK = "0";	// Carling's value by default
 		String sRemALPct = "0.20";	// 20% max by default
 
 		if (!args.hasNext()) {
@@ -69,8 +69,12 @@ public class TukeyOutlierDetectorTool extends AbstractCMDTool{
 		if (!(NumberUtils.isCreatable(sTukeyK))) {
 			throw new IllegalArgumentException("Tukey k value invalid.");
 		}
-		if (!(sTukeyK.equals("1.5")) && !(sTukeyK.equals("3")) && !(sTukeyK.equals("3.0"))) {
-			throw new IllegalArgumentException("Unacceptable Tukey k value (only 1.5 or 3 accepted).");
+		if (!(sTukeyK.equals("0")) &&
+			!(sTukeyK.equals("0.0")) &&
+			!(sTukeyK.equals("1.5")) &&
+			!(sTukeyK.equals("3")) &&
+			!(sTukeyK.equals("3.0"))) {
+			throw new IllegalArgumentException("Unacceptable Tukey k value (only 0, 1.5 or 3 accepted).");
 		}
 		// Check rem-alim-pct parameter
 		if (!(NumberUtils.isCreatable(sRemALPct))) {
@@ -87,7 +91,7 @@ public class TukeyOutlierDetectorTool extends AbstractCMDTool{
 			System.out.println("No samplers found in input file - please check your file.");
 		} else {
 			// Save Removal results in an HTML file for import in DevOps tool later on
-			String htmlFilename = TukeyOutlierDetectorLogic.saveTableStatsAsHtml(sInFile, sTukeyK, sRemALPct);
+			String htmlFilename = TukeyOutlierDetectorLogic.saveTableStatsAsHtml(sInFile, sRemALPct);
 			System.out.println("Results saved in " + htmlFilename);
 		}
 		return iResult;
@@ -97,7 +101,7 @@ public class TukeyOutlierDetectorTool extends AbstractCMDTool{
 	protected void showHelp(PrintStream os) {
 		os.println("Options for tool 'TukeyOutlierDetector': --input-file <filenameIn> "
 				+ "["
-				+ "--tukey-k <k (1.5 or 3, default = 3)> "
+				+ "--tukey-k <k (0 (Carling), 1.5 or 3, default = 0)> "
 				+ "--rem-alim-pct <Removal acceptable limit percentage value to pass (default = 20%)>"
 				+ "]");				
 	}

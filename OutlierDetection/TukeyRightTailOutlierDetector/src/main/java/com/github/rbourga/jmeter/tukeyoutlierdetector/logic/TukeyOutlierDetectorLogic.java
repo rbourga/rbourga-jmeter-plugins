@@ -5,6 +5,7 @@ package com.github.rbourga.jmeter.tukeyoutlierdetector.logic;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -55,12 +56,13 @@ public final class TukeyOutlierDetectorLogic {
 		 */
 		boolean bIsUpperRemoved, bIsSmallGroup, bIsFailed;
 		int iInitLblCnt, iUpprOutlierCnt;
-		double fUpFence;
-		double fUpFenceMin;
-		String sOutputFile;
+		double fUpFence, fUpFenceMin;
+		String sKrounded, sOutputFile;
 		List<CSVRecord> aLblRcd, mergedOutliers = null, mergedWithoutOutliers = null;
 		MathMoments mathMoments;
 
+		double fK = fTukeyK;
+		DecimalFormat df2Decimals = new DecimalFormat("0.00");
 		BigDecimal bdMaxRemPct = new BigDecimal(fMaxRemPct);
 
 		// Load the data after getting the delimiter separator from current JMeter properties
@@ -87,13 +89,21 @@ public final class TukeyOutlierDetectorLogic {
 
 			// Only look for outliers if there are at least four items to compare
 			if (iInitLblCnt > 3) {
+				// Initialize k
+				if (fTukeyK == 0) {
+					// Use Carling's formulae and round to 2 decimal places
+					fK = ((17.63 * iInitLblCnt) - 23.64) / ((7.74 * iInitLblCnt) - 3.71);
+					sKrounded = df2Decimals.format(fK);
+					// Convert value back to double
+					fK = Double.parseDouble(sKrounded);
+				}
 				/*
 				 * An outlier can hide another outlier...so when removing extreme values, we
 				 * have to iterate until no extreme values are left.
 				 */
 				do {
 					// Get the upper fence
-					fUpFence = getUpprFence(aLblRcd, fTukeyK);
+					fUpFence = getUpprFence(aLblRcd, fK);
 					// Save the most severe limit for the report
 					fUpFenceMin = Math.min(fUpFence, fUpFenceMin);
 					// Now remove all samples that are higher than the upper fence using Java's
@@ -164,7 +174,7 @@ public final class TukeyOutlierDetectorLogic {
 		return iFailedLblCnt;
 	}
 
-	private static double getUpprFence(List<CSVRecord> aRcd, double fTukeyK) {
+	private static double getUpprFence(List<CSVRecord> aRcd, double fK) {
 		// Uses StatUtils to get the percentiles which will give us the UpperFence.
 
 		// Extract the elapsed values into a list
@@ -182,7 +192,7 @@ public final class TukeyOutlierDetectorLogic {
 
 		// Return the upper fence value
 		double fInterQuartileRange = dQ3 - dQ1;
-		double fUpperFence = dQ3 + (fTukeyK * fInterQuartileRange);
+		double fUpperFence = dQ3 + (fK * fInterQuartileRange);
 		return fUpperFence;
 	}
 
@@ -207,12 +217,11 @@ public final class TukeyOutlierDetectorLogic {
 		return sOutputFile;
 	}
 
-	public static String saveTableStatsAsHtml(String sFilePath, String sTukeyK, String sRemALPct) {
+	public static String saveTableStatsAsHtml(String sFilePath, String sRemALPct) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + "_UpTrimSum.html";
-		String sTableTitle = "Upper Outliers Removal Summary (Tukey k = "
-				+ sTukeyK + ", Removal Acceptable Limit = " + sRemALPct + ")";
+		String sTableTitle = "Upper Outliers Removal Summary (Removal Acceptable Limit = " + sRemALPct + ")";
 		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
 		return sOutputFile;
 	}
