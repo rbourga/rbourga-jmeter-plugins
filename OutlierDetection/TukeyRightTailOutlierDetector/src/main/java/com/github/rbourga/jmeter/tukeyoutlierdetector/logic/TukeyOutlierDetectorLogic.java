@@ -22,6 +22,8 @@ import com.github.rbourga.jmeter.common.MathMoments;
 
 public final class TukeyOutlierDetectorLogic {
 
+	private static DecimalFormat df2Decimals = new DecimalFormat("0.00");
+
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
 	private static PowerTableModel pwrTblMdlStats = new PowerTableModel(
@@ -38,7 +40,7 @@ public final class TukeyOutlierDetectorLogic {
 					String.class, // Label
 					Integer.class, // # Samples
 					Double.class, // Average
-					Integer.class, // Upper Fence
+					Double.class, // Upper Fence
 					Integer.class, // # Removed
 					Double.class, // # Removed %
 					Boolean.class, // Small Group
@@ -62,7 +64,6 @@ public final class TukeyOutlierDetectorLogic {
 		MathMoments mathMoments;
 
 		double fK = fTukeyK;
-		DecimalFormat df2Decimals = new DecimalFormat("0.00");
 		BigDecimal bdMaxRemPct = new BigDecimal(fMaxRemPct);
 
 		// Load the data after getting the delimiter separator from current JMeter properties
@@ -190,9 +191,12 @@ public final class TukeyOutlierDetectorLogic {
 		double dQ1 = StatUtils.percentile(aElapsed, 25); // first quartile
 		double dQ3 = StatUtils.percentile(aElapsed, 75); // third quartile
 
-		// Return the upper fence value
+		// Return the upper fence value to 2 decimal places
 		double fInterQuartileRange = dQ3 - dQ1;
 		double fUpperFence = dQ3 + (fK * fInterQuartileRange);
+		String sUpperFencerounded = df2Decimals.format(fUpperFence);
+		// Convert value back to double
+		fUpperFence = Double.parseDouble(sUpperFencerounded);
 		return fUpperFence;
 	}
 
