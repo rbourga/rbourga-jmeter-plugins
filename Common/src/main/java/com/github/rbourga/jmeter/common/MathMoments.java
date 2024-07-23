@@ -21,7 +21,7 @@ public class MathMoments {
 		this.dMean = dMean;
 		this.dVariance = dVariance;
 		this.dStdDev = Math.sqrt(dVariance);
-		this.dCoV = dStdDev / dMean;
+		this.dCoV = (dMean == 0) ? 0 : dStdDev / dMean;
 	}
 
 	public double getCoV() {
