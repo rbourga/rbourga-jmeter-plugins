@@ -7,8 +7,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
-
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jmeter.gui.util.PowerTableModel;
@@ -49,9 +47,24 @@ public final class MultimodalityCoVLogic {
 					});
 	private static int PASSFAIL_TEST_COLNBR = 9;	// Position of Failed column in the table
 
+	private static PowerTableModel pwrTblMdlRows = new PowerTableModel(
+			new String[] {
+					JMeterUtils.getResString("sampler label"), // Label
+					"Bin Size",
+					"Multimodal", // true if multimodal, false otherwise
+					"Check" // user to tick for generating the bar chart
+			}, new Class[] {
+					String.class,	// Label
+					Double.class,	// Bin size
+					Boolean.class,	// Multimodal
+					Boolean.class	// Check
+					});
 
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
+	}
+	public static PowerTableModel getPwrTblMdelRows() {
+		return pwrTblMdlRows;
 	}
 
 	public static int computeMvalueCoV(String sFilepath, double dMvalueThold, double dCoVALPct) {
@@ -74,6 +87,7 @@ public final class MultimodalityCoVLogic {
 
 		// Clear any statistics from a previous analysis
 		pwrTblMdlStats.clearData();
+		pwrTblMdlRows.clearData();
 
 		// Now process the data points
 		int iFailedLblCnt = 0;
@@ -107,7 +121,7 @@ public final class MultimodalityCoVLogic {
 				bIsFailed = true;
 				iFailedLblCnt++;
 			}
-			Object[] oArrayRowData = {
+			Object[] oArrayRowDataStat = {
 					sLbl,		// Label
 					iTotRcd,	// # Samples
 					Long.valueOf((long) mathMoments.getMean()),	// Average
@@ -118,8 +132,16 @@ public final class MultimodalityCoVLogic {
 					Long.valueOf((long) mValueCalculator.getBinSize()),	// Bin Size
 					bIsMultimodal,	// Multimodal
 					bIsFailed };	// shows a tick if value less than the specified threshold
+			pwrTblMdlStats.addRow(oArrayRowDataStat);
 			
-			pwrTblMdlStats.addRow(oArrayRowData);
+			// Update the rows table
+			Object[] oArrayRowDataRow = {
+					sLbl,		// Label
+					Long.valueOf((long) mValueCalculator.getBinSize()),	// Bin Size
+					bIsMultimodal,	// Multimodal
+					false };	// nothing selected by default
+			pwrTblMdlRows.addRow(oArrayRowDataRow);
+
 		}
 		return iFailedLblCnt;
 	}
@@ -157,4 +179,5 @@ public final class MultimodalityCoVLogic {
 		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
 		return sOutputFile;
 	}
+
 }

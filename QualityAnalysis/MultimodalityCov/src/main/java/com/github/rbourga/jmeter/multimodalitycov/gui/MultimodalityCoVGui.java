@@ -4,17 +4,21 @@
 package com.github.rbourga.jmeter.multimodalitycov.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.ConcurrentSkipListMap;
+
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.table.TableCellRenderer;
 
@@ -33,8 +37,11 @@ import org.apache.jorphan.gui.RendererUtils;
 import com.github.rbourga.jmeter.common.FileServices;
 import com.github.rbourga.jmeter.multimodalitycov.logic.MultimodalityCoVLogic;
 
+import kg.apc.charting.AbstractGraphRow;
+import kg.apc.charting.ColorsDispatcher;
+import kg.apc.charting.ColorsDispatcherFactory;
+import kg.apc.jmeter.graphs.GraphPanel;
 import kg.apc.jmeter.JMeterPluginsUtils;
-
 /**
  * 
  */
@@ -48,6 +55,7 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 	private static final String[] EXTS = { ".jtl", ".csv", ".tsv" };
 	private static final String ACTION_CALCULATE = "calculate";
 	private static final String ACTION_SAVE = "save";
+	private static final String ACTION_CHART = "chart";
 
 	// Objects for the UI Panels
 	private JLabel jLblMvalueThold = new JLabel("MValue Threshold ");
@@ -55,10 +63,18 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 	private JFormattedTextField jFtxtFldMvalueThold;
 	private JFormattedTextField jFTxtFldCoVAL;
 	private FilePanel filePnl;
+	
+	// Objects for graph
+    protected ConcurrentSkipListMap<String, AbstractGraphRow> model;
+	protected ColorsDispatcher colors;
+	
 
 	// GUI constructor
 	public MultimodalityCoVGui() {
 		super();
+		
+		// For Graphing needs
+        model = new ConcurrentSkipListMap<>();
 
 		// Use standard JMeter border
 		setLayout(new BorderLayout());
@@ -72,6 +88,7 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		// Create a vertical panel layout scheme to hold the different panels of the UI
 		JPanel vrtPnl = new VerticalPanel();
 
+		// Top panel layout
 		// Panel for MValue option
 		JPanel jPnlMvalue = new JPanel(new BorderLayout());
 		NumberFormat nbrF1digit = NumberFormat.getNumberInstance();
@@ -105,7 +122,36 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		jBtnCalc.setActionCommand(ACTION_CALCULATE);
 		jPnlCalc.add(jBtnCalc);
 
-		// Grid to display modality & cov of samplers
+		// Create a tabbed pane with the different tabs
+		JTabbedPane jTabbedPane = new JTabbedPane();
+		jTabbedPane.addTab("Results", null, addResultsTab(), "View Results");
+		jTabbedPane.addTab("Rows", null, addRowsTab(), "Select rows to display");
+		JPanel panel2 = new JPanel();
+		panel2.add(new JLabel("Panel that contains stuff for tab 2"));
+		JPanel jPnlChart = crteChartTab();
+		
+		// Add the panels to the tabbed pane
+		jTabbedPane.addTab("Chart", jPnlChart);
+
+		// Finally, assemble all panels
+		vrtPnl.add(jPnlMvalue);
+		vrtPnl.add(jPnlCoVFail);
+		vrtPnl.add(filePnl);
+		vrtPnl.add(jPnlCalc);
+		vrtPnl.add(jTabbedPane);
+		add(vrtPnl, BorderLayout.CENTER);
+
+		// Hide the default file panel of this class as we are using another file panel
+		getFilePanel().setVisible(false);
+
+	}
+
+	private JPanel addResultsTab() {
+
+		// To display the Results grid and Save button
+		JPanel vrtPnlResults = new VerticalPanel();
+
+		// The table
 		JTable jTblStats = new JTable(MultimodalityCoVLogic.getPwrTblMdelStats());
 		JMeterUtils.applyHiDPI(jTblStats);
 		jTblStats.setAutoCreateRowSorter(true);
@@ -123,23 +169,50 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		// Create the scroll pane and add the table to it
 		JScrollPane jScrollPane = new JScrollPane(jTblStats);
 
-		// Save Table button
+		// The Save Table button
 		JPanel jPnlSave = new JPanel();
 		JButton jBtnSave = new JButton(JMeterUtils.getResString("aggregate_graph_save_table"));
 		jBtnSave.addActionListener(this);
 		jBtnSave.setActionCommand(ACTION_SAVE);
 		jPnlSave.add(jBtnSave, BorderLayout.CENTER);
+		
+		// Add the grid & save button to the Results tab
+		vrtPnlResults.add(jScrollPane);
+		vrtPnlResults.add(jPnlSave);
+		
+		return vrtPnlResults;
 
-		// Finally, assemble all panels
-		vrtPnl.add(jPnlMvalue);
-		vrtPnl.add(jPnlCoVFail);
-		vrtPnl.add(filePnl);
-		vrtPnl.add(jPnlCalc);
-		vrtPnl.add(jScrollPane);
-		add(vrtPnl, BorderLayout.CENTER);
-		add(jPnlSave, BorderLayout.SOUTH);
-		// Hide the default file panel of this class as we are using another file panel
-		getFilePanel().setVisible(false);
+	}
+
+	private Component addRowsTab() {
+		// To display the Rows grid and Display button
+		JPanel vrtPnlRows = new VerticalPanel();
+
+		// The table
+		JTable jTblRows = new JTable(MultimodalityCoVLogic.getPwrTblMdelRows());
+		JMeterUtils.applyHiDPI(jTblRows);
+		jTblRows.setAutoCreateRowSorter(true);
+		RendererUtils.applyRenderers(jTblRows, new TableCellRenderer[] {
+				null, // Label
+				new MinMaxLongRenderer("#0"), // Bin size
+				null, // Multimodal
+				null }); // Check/uncheck indicator
+		// Create the scroll pane and add the table to it
+		JScrollPane jScrollPane = new JScrollPane(jTblRows);
+
+		// The Chart button
+		JPanel jPnlChart = new JPanel();
+		JButton jBtnChart = new JButton("Chart");
+		jBtnChart.addActionListener(this);
+		jBtnChart.setActionCommand(ACTION_CHART);
+		jPnlChart.add(jBtnChart, BorderLayout.CENTER);
+		
+		// Add the grid & save button to the Results tab
+		vrtPnlRows.add(jScrollPane);
+		vrtPnlRows.add(jPnlChart);
+		
+		return vrtPnlRows;
+
 	}
 
 	/**
@@ -193,6 +266,18 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 			break;
 		default:
 		}
+	}
+	
+	private JPanel crteChartTab() {
+	    colors = ColorsDispatcherFactory.getColorsDispatcher();
+		JPanel jPnlChart = new JPanel(new BorderLayout());
+		GraphPanel graphPanel = new GraphPanel();
+		graphPanel.getGraphObject().setRows(model);
+        graphPanel.getGraphObject().setPrecisionLabel(100);
+	    jPnlChart.add(graphPanel, BorderLayout.CENTER);
+	    
+		return jPnlChart;
+
 	}
 	
 	private String saveDataModTblAsCsv() {
