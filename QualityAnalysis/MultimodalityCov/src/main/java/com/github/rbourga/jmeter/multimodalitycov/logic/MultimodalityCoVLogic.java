@@ -5,6 +5,7 @@ package com.github.rbourga.jmeter.multimodalitycov.logic;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.csv.CSVRecord;
@@ -66,6 +67,12 @@ public final class MultimodalityCoVLogic {
 	public static PowerTableModel getPwrTblMdelRows() {
 		return pwrTblMdlRows;
 	}
+	
+	// Hashmap that contains the list of bins to draw the bar charts
+	private static Map<String, int[]> binsMap = new HashMap<>();
+	public static Map<String, int[]> getBinsMap() {
+		return binsMap;
+	}
 
 	public static int computeMvalueCoV(String sFilepath, double dMvalueThold, double dCoVALPct) {
 		int iTotRcd;
@@ -88,6 +95,7 @@ public final class MultimodalityCoVLogic {
 		// Clear any statistics from a previous analysis
 		pwrTblMdlStats.clearData();
 		pwrTblMdlRows.clearData();
+		binsMap.clear();
 
 		// Now process the data points
 		int iFailedLblCnt = 0;
@@ -107,6 +115,8 @@ public final class MultimodalityCoVLogic {
 			if (bdMvalue.compareTo(bdMvalueThold) != -1) {
 				bIsMultimodal = true;
 			}
+			// Add the bins to the corresponding label
+			binsMap.put(sLbl, mValueCalculator.getiBinsArray());
 
 			// Calculate the Coefficient of Variation
 			bdCoVScore = new BigDecimal(mathMoments.getCoV());
@@ -179,5 +189,4 @@ public final class MultimodalityCoVLogic {
 		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
 		return sOutputFile;
 	}
-
 }

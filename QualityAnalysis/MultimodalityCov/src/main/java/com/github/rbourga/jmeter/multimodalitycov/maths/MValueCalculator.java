@@ -11,11 +11,13 @@ public class MValueCalculator {
 	// Variables
 	private double dBinSize;
 	private double dMvalue;
+	private int[] iBinsArray; // Array to store the histogram bins
 	
     // Constructor
-	public MValueCalculator(double dBinSize, double dMvalue) {
+	public MValueCalculator(double dBinSize, double dMvalue, int[] iBinsArray) {
         this.dBinSize = dBinSize;
         this.dMvalue = dMvalue;
+        this.iBinsArray = iBinsArray;
     }
 
 	public double getBinSize() {
@@ -24,10 +26,14 @@ public class MValueCalculator {
 	public double getMvalue() {
 		return dMvalue;
 	}
+	public int[] getiBinsArray() {
+		return iBinsArray;
+	}
 
 	public static MValueCalculator calculate(List<CSVRecord> listRcd, MathMoments mathMo) {
 
 		double dMvalue = 0;
+		int[] histogram = null;
 		int iRcdNbr = listRcd.size();
 
 		// Calculate the bin size using Scott's method
@@ -35,7 +41,7 @@ public class MValueCalculator {
 		double dBinSize = ((3.5 * mathMo.getStdDev()) / Math.cbrt(iRcdNbr));
 		if (dBinSize != 0) {
 			// Build the histogram using the bin size
-			int[] histogram = buildHistogram(listRcd, dBinSize, mathMo);
+			histogram = buildHistogram(listRcd, dBinSize, mathMo);
 
 			// Now calculate the mvalue
 			// See formula at https://www.brendangregg.com/FrequencyTrails/modes.html
@@ -56,7 +62,7 @@ public class MValueCalculator {
 			dMvalue = iMaxFrequency == 0 ? 0 : (1.0 /iMaxFrequency) * dSumOfAbsoluteDifferences;
 		}		
 
-		return new MValueCalculator(dBinSize, dMvalue);
+		return new MValueCalculator(dBinSize, dMvalue, histogram);
 	}
 
 	private static int[] buildHistogram(List<CSVRecord> listRcd, double dBinSize, MathMoments mathMo) {
@@ -77,5 +83,4 @@ public class MValueCalculator {
 
 		return iBins;
 	}
-
 }

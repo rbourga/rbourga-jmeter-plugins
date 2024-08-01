@@ -62,5 +62,10 @@
 		<artifactId>jmeter-plugins-comm</artifactId>
 		<version>1.1.0</version>
 	</dependency>
+	<dependency>
+		<groupId>org.jfree</groupId>
+		<artifactId>jfreechart</artifactId>
+		<version>1.5.5</version>
+	</dependency>
   </dependencies>
 </project>
