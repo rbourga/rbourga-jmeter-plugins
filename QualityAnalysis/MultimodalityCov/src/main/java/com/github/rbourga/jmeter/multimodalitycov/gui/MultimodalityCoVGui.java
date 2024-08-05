@@ -347,18 +347,20 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 			}
 		}
 		
-		// Check if some rows are selected
+		// Check if some rows are selected and that no bin szie is equal to 0
 		if (aliCheckedRow.isEmpty()) {
 			return null;
+		} else {
+			int iNbrOfChecks = aliCheckedRow.size();
+			for (int i = 1; i < iNbrOfChecks; i++) {				
+				long lBinSizei = (long) jTblRows.getValueAt(aliCheckedRow.get(i), iColBin);
+                if (lBinSizei == 0) {
+                    GuiPackage.showErrorMessage("Bin size cannot be 0 - please select rows with bin size different from 0.", "Chart Data error");
+                    return null;
+                }
+			}
 		}
 		
-		// Bin size cannot be 0
-		long lBinSizeFirst = (long) jTblRows.getValueAt(aliCheckedRow.getFirst(), iColBin);
-		if (lBinSizeFirst == 0) {
-            GuiPackage.showErrorMessage("Bin size cannot be 0 - please select rows with bin size different from 0.", "Chart Data error");
-            return null;
-        }
-
 		/*
 		// Ensure the checked rows have same bin size
 		if (aliCheckedRow.size() > 1) {
