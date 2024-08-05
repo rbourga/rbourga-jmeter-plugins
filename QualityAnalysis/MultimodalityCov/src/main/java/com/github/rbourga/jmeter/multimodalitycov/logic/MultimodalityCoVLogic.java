@@ -51,11 +51,13 @@ public final class MultimodalityCoVLogic {
 	private static PowerTableModel pwrTblMdlRows = new PowerTableModel(
 			new String[] {
 					JMeterUtils.getResString("sampler label"), // Label
+					JMeterUtils.getResString("aggregate_report_min"), // Min
 					"Bin Size",
 					"Multimodal", // true if multimodal, false otherwise
 					"Check" // user to tick for generating the bar chart
 			}, new Class[] {
 					String.class,	// Label
+					Double.class,	// Min
 					Double.class,	// Bin size
 					Boolean.class,	// Multimodal
 					Boolean.class	// Check
@@ -147,6 +149,7 @@ public final class MultimodalityCoVLogic {
 			// Update the rows table
 			Object[] oArrayRowDataRow = {
 					sLbl,		// Label
+					Long.valueOf((long) mathMoments.getMin()),	// Min
 					Long.valueOf((long) mValueCalculator.getBinSize()),	// Bin Size
 					bIsMultimodal,	// Multimodal
 					false };	// nothing selected by default

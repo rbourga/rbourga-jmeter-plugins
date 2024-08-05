@@ -77,6 +77,7 @@ public class MValueCalculator {
 		for (CSVRecord rcd : listRcd) {
 			double dElapsed = Long.parseLong(rcd.get("elapsed"));
 			int iBinIndex = (int) ((dElapsed - dMin) / dBinSize) + 1;	// Offset by 1 to account for zero terminator at the start
+			// Any data point higher than max bin is counted in the max bin.
 			if (iBinIndex >= iBinCount + 1) iBinIndex = iBinCount;
 			iBins[iBinIndex]++;
 		}

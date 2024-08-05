@@ -6,7 +6,6 @@ package com.github.rbourga.jmeter.multimodalitycov.gui;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.NumberFormat;
@@ -14,8 +13,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListMap;
-
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFormattedTextField;
@@ -40,11 +37,10 @@ import org.apache.jorphan.gui.RendererUtils;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.block.BlockBorder;
+import org.jfree.chart.axis.CategoryAxis;
+import org.jfree.chart.axis.CategoryLabelPositions;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.chart.title.LegendTitle;
 import org.jfree.chart.ui.RectangleEdge;
 import org.jfree.data.category.DefaultCategoryDataset;
@@ -52,8 +48,6 @@ import org.jfree.data.category.DefaultCategoryDataset;
 import com.github.rbourga.jmeter.common.FileServices;
 import com.github.rbourga.jmeter.multimodalitycov.logic.MultimodalityCoVLogic;
 
-import kg.apc.charting.AbstractGraphRow;
-import kg.apc.charting.ColorsDispatcher;
 import kg.apc.jmeter.JMeterPluginsUtils;
 /**
  * 
@@ -68,7 +62,6 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 	private static final String[] EXTS = { ".jtl", ".csv", ".tsv" };
 	private static final String ACTION_CALCULATE = "calculate";
 	private static final String ACTION_SAVE = "save";
-	private static final String ACTION_CHART = "chart";
 
 	// Objects for the UI Panels
 	private JLabel jLblMvalueThold = new JLabel("MValue Threshold ");
@@ -78,20 +71,13 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 	private FilePanel filePnl;
 	
 	// Objects for graph
-	ArrayList<Integer> aliCheckedRow = new ArrayList<Integer>();
 	private JTable jTblRows;
-	private int iColBin, iColCheck, iColLabel;
-    protected ConcurrentSkipListMap<String, AbstractGraphRow> model;
-	protected ColorsDispatcher colors;
-	JFreeChart barChart;
+	private int iColBin, iColCheck, iColLabel, iColMin;
 
 	// GUI constructor
 	public MultimodalityCoVGui() {
 		super();
 		
-		// For Graphing needs
-        model = new ConcurrentSkipListMap<>();
-
 		// Use standard JMeter border
 		setLayout(new BorderLayout());
 		setBorder(makeBorder());
@@ -146,16 +132,16 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		// Create a placeholder for the Chart tab
 		JPanel jPnlChart = new JPanel(new BorderLayout());
 		ChartPanel jChartPnl = new ChartPanel(null);
-		jChartPnl.setFillZoomRectangle(true);
-		jChartPnl.setMouseWheelEnabled(true); // Enable/Disable mouse wheel zooming
-		jChartPnl.setPreferredSize(new Dimension(600, 400));
+//		jChartPnl.setFillZoomRectangle(true);
+//		jChartPnl.setMouseWheelEnabled(true); // Enable/Disable mouse wheel zooming
+//		jChartPnl.setPreferredSize(new Dimension(600, 400));
 		jPnlChart.add(jChartPnl, BorderLayout.CENTER);
 		jTabbedPane.addTab("Chart",null, jPnlChart, "View chart");
 
 		// Add a ChangeListener to the tabbedPane to update the bar chart when the user selects it
 		jTabbedPane.addChangeListener(e -> {
             if (jTabbedPane.getSelectedIndex() == 2) {	// Index of Chart tab
-        		barChart = crteBarChart(aliCheckedRow, MultimodalityCoVLogic.getBinsMap());
+        		JFreeChart barChart = crteBarChart();
         		jChartPnl.setChart(barChart);
             }
         });
@@ -221,28 +207,20 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		jTblRows.setAutoCreateRowSorter(true);
 		RendererUtils.applyRenderers(jTblRows, new TableCellRenderer[] {
 				null, // Label
+				new MinMaxLongRenderer("#0"), // Min
 				new MinMaxLongRenderer("#0"), // Bin size
 				null, // Multimodal
 				null }); // Check/uncheck indicator
 		// Create the scroll pane and add the table to it
 		JScrollPane jScrollPane = new JScrollPane(jTblRows);
 		iColLabel = 0;
-		iColBin = 1;
-		iColCheck = 3;
-
-		// The Chart button
-		JPanel jPnlChart = new JPanel();
-		JButton jBtnChart = new JButton("Chart");
-		jBtnChart.addActionListener(this);
-		jBtnChart.setActionCommand(ACTION_CHART);
-		jPnlChart.add(jBtnChart, BorderLayout.CENTER);
+		iColMin = 1;
+		iColBin = 2;
+		iColCheck = 4;
 		
-		// Add the grid & save button to the Results tab
-		vrtPnlRows.add(jScrollPane);
-		vrtPnlRows.add(jPnlChart);
-		
+		// Add the grid to the Results tab
+		vrtPnlRows.add(jScrollPane);		
 		return vrtPnlRows;
-
 	}
 
 	/**
@@ -276,6 +254,7 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		MultimodalityCoVLogic.getPwrTblMdelStats().clearData();
 		MultimodalityCoVLogic.getPwrTblMdelRows().clearData();
 		MultimodalityCoVLogic.getBinsMap().clear();
+
 		 // Repaint the tables
 		MultimodalityCoVLogic.getPwrTblMdelStats().fireTableDataChanged();
 		MultimodalityCoVLogic.getPwrTblMdelRows().fireTableDataChanged();
@@ -297,10 +276,6 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 			}
 			String csvFilename = saveDataModTblAsCsv();
 			GuiPackage.showInfoMessage("Data saved to " + csvFilename, "Save Table Data");
-			break;
-
-		case ACTION_CHART:
-			actionChart();
 			break;
 
 		default:
@@ -352,87 +327,99 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		MultimodalityCoVLogic.getPwrTblMdelRows().fireTableDataChanged();
 	}
 
-	private void actionChart() {
+	private JFreeChart crteBarChart() {
+		/*
+		 *  Creates a Bar Chart using JFreeChart.
+		 *  The bins will be displayed according to their actual range on the X-Axis .
+		 *  The chart will be updated when the user selects the Chart tab thanks to the tabbed ChangeListener.
+		 */
+		// Check if the Rows table is empty
 		if (MultimodalityCoVLogic.getPwrTblMdelRows().getRowCount() == 0) {
-			GuiPackage.showErrorMessage("Rows table empty - please perform Calculate before.", "Chart Data error");
-			return;
+			return null;
 		}
 
-		aliCheckedRow.clear();
-		// Check if any rows are selected and save their number in an array
+		// Parse the Rows table and save the number of the selected rows in an array
 		int iRowCnt = jTblRows.getRowCount();
+		ArrayList<Integer> aliCheckedRow = new ArrayList<Integer>();
 		for (int i = 0; i < iRowCnt; i++) {
 			if ((boolean) jTblRows.getValueAt(i,iColCheck)) {
 				aliCheckedRow.add(i);
 			}
 		}
-		if (aliCheckedRow.size() == 0) {
-			GuiPackage.showErrorMessage("No row selected - please tick a row.", "Chart Data error");
-			return;
+		
+		// Check if some rows are selected
+		if (aliCheckedRow.isEmpty()) {
+			return null;
 		}
 		
 		// Bin size cannot be 0
 		long lBinSizeFirst = (long) jTblRows.getValueAt(aliCheckedRow.getFirst(), iColBin);
 		if (lBinSizeFirst == 0) {
-            GuiPackage.showErrorMessage("Bin size for selected rows cannot be 0 - please select rows with bin size different from 0.", "Chart Data error");
-            return;
+            GuiPackage.showErrorMessage("Bin size cannot be 0 - please select rows with bin size different from 0.", "Chart Data error");
+            return null;
         }
-		
+
+		/*
 		// Ensure the checked rows have same bin size
 		if (aliCheckedRow.size() > 1) {
 			int iNbrOfChecks = aliCheckedRow.size();
 			for (int i = 1; i < iNbrOfChecks; i++) {
 				long lBinSizei = (long) jTblRows.getValueAt(aliCheckedRow.get(i), iColBin);
                 if (lBinSizeFirst != lBinSizei) {
-                    GuiPackage.showErrorMessage("Bin sizes for selected rows are different - please select rows with same bin size.", "Chart Data error");
-                    return;}
+                    GuiPackage.showErrorMessage("Bin sizes of selected rows are different - please select rows with same bin size.", "Chart Data error");
+                    return null;
+                }
 			}
 		}
+		*/		
 		
-		// The chart will be updated when the user selects the Chart tab thanks to the ChangeListener
-	}
-
-	private JFreeChart crteBarChart(ArrayList<Integer> alistInt , Map<String, int[]> binsMap) {
-		// Return null to clear the Chart if nothing selected
-		if (alistInt.isEmpty()) {
-			return null;
-		}
-		// Add the wanted series to a DefaultCategoryDataset used by JFreeChart
-		DefaultCategoryDataset categoryDat = new DefaultCategoryDataset();
-		for (Integer iRow : alistInt) {
+		// Create a DefaultCategoryDataset which includes the bin ranges as categories.
+		Map<String, int[]> binsMap = MultimodalityCoVLogic.getBinsMap();
+		DefaultCategoryDataset catDataset = new DefaultCategoryDataset();
+		for (Integer iRow : aliCheckedRow) {
 			String sLabel = (String) jTblRows.getValueAt(iRow,iColLabel);
+			long lMin = (long) jTblRows.getValueAt(iRow,iColMin);
+			long lBinSize = (long) jTblRows.getValueAt(iRow, iColBin);
 			int[] aiBins = binsMap.get(sLabel);
-			// Note: the list of bins contain the zero bin terminators at the beginning and the end that we need to skip
+			// Note: the list of bins contain the zero bin terminators at the beginning and the end.
+			// So we need to skip them in the graph.
 			for (int iBin = 1; iBin < (aiBins.length - 1); iBin++) {
-                categoryDat.addValue(aiBins[iBin], sLabel, "Bin " + iBin);
-            }	
+				// Tag the bins with their actual range on the X-axis
+				String binLabel = getBinLabel(iBin - 1, lMin, lBinSize);
+				catDataset.addValue(aiBins[iBin], sLabel, binLabel);
+            }
 		}
-		
+
 		// Create the bar chart with the dataset and title
 		JFreeChart barChart = ChartFactory.createBarChart(
-                "Response Time Histogram",	// Title
+                "Response Times Distribution",	// Title
                 "Response times in ms",		// X Axis label
                 "Number of responses",		// Y Axis label
-                categoryDat,
+                catDataset,
                 PlotOrientation.VERTICAL,
                 true,						// Legend
-                false,						// Tooltips
+                true,						// Tooltips
                 false);						// URLs
-		
-		// Formatting the Chart...
+
+		// Some rendering functions...
 		barChart.setBackgroundPaint(Color.WHITE);
-		CategoryPlot plot = (CategoryPlot) barChart.getPlot();
-		NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
-		rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
-		BarRenderer renderer = (BarRenderer) plot.getRenderer();
-		renderer.setDrawBarOutline(false);
-		barChart.getLegend().setFrame(BlockBorder.NONE);
 		
+		// Customize the X-axis to show the bin ranges rotated
+		CategoryPlot plot = (CategoryPlot) barChart.getPlot();
+		CategoryAxis xAxis = plot.getDomainAxis();
+		xAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_45);
+	
 		// Set legend at the top
 		LegendTitle legend = barChart.getLegend();
 		legend.setPosition(RectangleEdge.TOP);
 
 		return barChart;        
+	}
+
+	private String getBinLabel(int iBinIndex, long lMin, long lBinSize) {
+		int binStart = (int) ((iBinIndex * lBinSize) + lMin);
+		int binEnd = binStart + (int) lBinSize;
+		return binStart + "-" + binEnd + " ms";
 	}
 
 	@Override
