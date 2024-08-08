@@ -31,7 +31,7 @@ public final class MultimodalityCoVLogic {
 					JMeterUtils.getResString("aggregate_report_max"), // Max
 					"CoV %", // Coefficent of Variation
 					"CoV Rating",
-					"Bin Size",
+					"mValue",
 					"Multimodal", // true if multimodal, false otherwise
 					"Failed" // shows a tick if excessive CoV or multimodal
 			}, new Class[] {
@@ -42,7 +42,7 @@ public final class MultimodalityCoVLogic {
 					Double.class,	// Max
 					Double.class,	// Coefficient of Variation %
 					String.class,	// Coefficient of Variation Rating
-					Double.class,	// Bin size
+					Double.class,	// mValue
 					Boolean.class,	// Multimodal
 					Boolean.class	// Failed
 					});
@@ -78,7 +78,7 @@ public final class MultimodalityCoVLogic {
 
 	public static int computeMvalueCoV(String sFilepath, double dMvalueThold, double dCoVALPct) {
 		int iTotRcd;
-		BigDecimal bdMvalue, bdCoVScore, bdCoVScoreRnd;
+		BigDecimal bdMvalue, bdMvalueRnd, bdCoVScore, bdCoVScoreRnd;
 		BigDecimal bdMvalueThold = new BigDecimal(dMvalueThold);
 		BigDecimal bdCoVALPct = new BigDecimal(dCoVALPct);
 		Boolean bIsMultimodal, bIsFailed;
@@ -113,8 +113,10 @@ public final class MultimodalityCoVLogic {
 			// Calculate the mValue
 			mValueCalculator = MValueCalculator.calculate(aRcd, mathMoments);
 			bdMvalue = new BigDecimal(mValueCalculator.getMvalue());
+			// Round to 2 decimal places
+			bdMvalueRnd = bdMvalue.setScale(1, RoundingMode.HALF_UP);
 			bIsMultimodal = false;
-			if (bdMvalue.compareTo(bdMvalueThold) != -1) {
+			if (bdMvalueRnd.compareTo(bdMvalueThold) != -1) {
 				bIsMultimodal = true;
 			}
 			// Add the bins to the corresponding label
@@ -141,9 +143,9 @@ public final class MultimodalityCoVLogic {
 					Long.valueOf((long) mathMoments.getMax()),	// Max
 					bdCoVScoreRnd.doubleValue(),	//Cof of Var %
 					sCoVRating,	// Cof of Var Rating
-					Long.valueOf((long) mValueCalculator.getBinSize()),	// Bin Size
+					bdMvalueRnd.doubleValue(),	// mValue
 					bIsMultimodal,	// Multimodal
-					bIsFailed };	// shows a tick if value less than the specified threshold
+					bIsFailed };	// shows a tick if values more than the specified thresholds
 			pwrTblMdlStats.addRow(oArrayRowDataStat);
 			
 			// Update the rows table

@@ -176,7 +176,7 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 				new MinMaxLongRenderer("#0"), // Max
 				new NumberRenderer("#0.00%"), // Cov
 				null, // CoV Rating
-				new MinMaxLongRenderer("#0"), // Bin size
+				new NumberRenderer("#0.0"), // mValue
 				null, // Multimodal
 				null }); // Pass/Failed indicator
 		// Create the scroll pane and add the table to it
