@@ -34,15 +34,26 @@ public class TukeyOutlierDetectorTest {
 		String sFilePath = sJMeterTempDir + "/TestResultsWithOutliers.csv";
 		PrintWriter oPrintWriter = TestResultsServices.initCSVtestResultsFile(sFilePath);
 
-        // Now create 100 results with outliers in the middle, transform them into events and save them via the CSVservice
+        // Now create 120 results with outliers in the middle, transform them into events and save them via the CSVservice
 		long lEnd;
 		long lInitial = System.currentTimeMillis();
 		SampleEvent oSampleEvent = null;
 		SampleResult oSampleResult;
 		Random oRandom = new Random();
 
-		// We start with some results with random times from 100 to 299ms
 		long lStart = lInitial;
+		// We start with some failed results with random times from 100 to 299ms
+		for (int i = 0; i < 20; i++) {
+			lEnd = lStart + oRandom.nextInt(200) + 100;
+			oSampleResult = SampleResult.createTestSample(lStart, lEnd);
+			oSampleResult.setSampleLabel("BogusUnitTest");
+			oSampleEvent = TestResultsServices.resultToEvent(oSampleResult, false);
+			oPrintWriter.println(CSVSaveService.resultToDelimitedString(oSampleEvent));
+			// Move the time for the next result 
+			lStart = lEnd;
+		}
+
+		// We start with some results with random times from 100 to 299ms
 		for (int i = 0; i < 30; i++) {
 			lEnd = lStart + oRandom.nextInt(200) + 100;
 			oSampleResult = SampleResult.createTestSample(lStart, lEnd);

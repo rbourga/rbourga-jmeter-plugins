@@ -60,7 +60,7 @@ public final class TukeyOutlierDetectorLogic {
 		int iInitLblCnt, iUpprOutlierCnt;
 		double fUpFence, fUpFenceMin;
 		String sKrounded, sOutputFile;
-		List<CSVRecord> aLblRcd, mergedOutliers = null, mergedWithoutOutliers = null;
+		List<CSVRecord> aLblRcd, mergedOutliers = null, mergedWithoutOutliers = null, aLblRcdPassed = null;
 		MathMoments mathMoments;
 
 		double fK = fTukeyK;
@@ -81,12 +81,17 @@ public final class TukeyOutlierDetectorLogic {
 		// Loop through the Labels in the dataset
 		for (String sLbl : rcdHashMap.keySet()) {
 			aLblRcd = rcdHashMap.get(sLbl);
-			iInitLblCnt = aLblRcd.size();
 			fUpFence = 0.0;
 			fUpFenceMin = Double.MAX_VALUE;
 
+			// We focus on successful samplers as they are the main interest
+			aLblRcdPassed = aLblRcd.stream()
+					.filter(rcd -> rcd.get("success").equals("true"))
+					.collect(Collectors.toList());
+			iInitLblCnt = aLblRcdPassed.size();
+
 			// Get some stats for this set of samples
-			mathMoments = MathMoments.crteMomentsFromRecordsList(aLblRcd);
+			mathMoments = MathMoments.crteMomentsFromRecordsList(aLblRcdPassed);
 
 			// Only look for outliers if there are at least four items to compare
 			if (iInitLblCnt > 3) {
@@ -104,13 +109,13 @@ public final class TukeyOutlierDetectorLogic {
 				 */
 				do {
 					// Get the upper fence
-					fUpFence = getUpprFence(aLblRcd, fK);
+					fUpFence = getUpprFence(aLblRcdPassed, fK);
 					// Save the most severe limit for the report
 					fUpFenceMin = Math.min(fUpFence, fUpFenceMin);
 					// Now remove all samples that are higher than the upper fence using Java's
 					// Stream API
 					final double fUpFenceFinal = fUpFence;
-					List<CSVRecord> upprOutliers = aLblRcd.stream()
+					List<CSVRecord> upprOutliers = aLblRcdPassed.stream()
 							.filter(rcd -> Double.parseDouble(rcd.get("elapsed")) > fUpFenceFinal)
 							.collect(Collectors.toList());
 					if (upprOutliers.size() == 0) {
@@ -119,7 +124,7 @@ public final class TukeyOutlierDetectorLogic {
 						// Outliers detected: save them in a separate list and repeat
 						mergedOutliers = addCSVList2To1(mergedOutliers, upprOutliers);
 						// Remove these outliers from the current list
-						aLblRcd = aLblRcd.stream()
+						aLblRcdPassed = aLblRcdPassed.stream()
 								.filter(rcd -> Double.parseDouble(rcd.get("elapsed")) <= fUpFenceFinal)
 								.collect(Collectors.toList());
 						bIsUpperRemoved = true;
@@ -127,18 +132,18 @@ public final class TukeyOutlierDetectorLogic {
 				} while (bIsUpperRemoved);
 
 				// Outliers removed, save the new cleansed list
-				mergedWithoutOutliers = addCSVList2To1(mergedWithoutOutliers, aLblRcd);
+				mergedWithoutOutliers = addCSVList2To1(mergedWithoutOutliers, aLblRcdPassed);
 			} else {
 				// No outliers removed because not enough samples: just save those samples
-				mergedWithoutOutliers = addCSVList2To1(mergedWithoutOutliers, aLblRcd);
+				mergedWithoutOutliers = addCSVList2To1(mergedWithoutOutliers, aLblRcdPassed);
 			}
 
 			// Save the results in the table
 			bIsSmallGroup = false;
-			if (aLblRcd.size() < 100) {
+			if (aLblRcdPassed.size() < 100) {
 				bIsSmallGroup = true;
 			}
-			iUpprOutlierCnt = iInitLblCnt - aLblRcd.size();
+			iUpprOutlierCnt = iInitLblCnt - aLblRcdPassed.size();
 			BigDecimal bdUpprOutlierPct = new BigDecimal((double) iUpprOutlierCnt / (double) iInitLblCnt);
 			// Round % to 4 decimal places
 			BigDecimal bdUpprOutlierPctRnd = bdUpprOutlierPct.setScale(4, RoundingMode.HALF_UP);
@@ -164,11 +169,11 @@ public final class TukeyOutlierDetectorLogic {
 		String sFileBaseName = FilenameUtils.getBaseName(sFilepath);
 		String sFileExtension = FilenameUtils.getExtension(sFilepath);
 		// Save cleansed results in a file for post statistics
-		sOutputFile = sFileDirectoryName + sFileBaseName + "_WithoutUpperOutliers." + sFileExtension;
+		sOutputFile = sFileDirectoryName + sFileBaseName + "_True_WOupperOutliers." + sFileExtension;
 		FileServices.saveCSVRecsToFile(sOutputFile, mergedWithoutOutliers, cDelim);
 		// Save the outliers in a separate file for post analysis
 		if (mergedOutliers != null) {
-			sOutputFile = sFileDirectoryName + sFileBaseName + "_UpperOutliers." + sFileExtension;
+			sOutputFile = sFileDirectoryName + sFileBaseName + "_True_UpperOutliers." + sFileExtension;
 			FileServices.saveCSVRecsToFile(sOutputFile, mergedOutliers, cDelim);
 		}
 
@@ -216,7 +221,7 @@ public final class TukeyOutlierDetectorLogic {
 	public static String saveTableStatsAsCsv(String sFilePath) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_UpprOutlierRemStats.csv";
+		String sOutputFile = sFileDirectoryName + sFileBaseName + "_UpperTrimStats.csv";
 		FileServices.saveTableAsCsv(sOutputFile, pwrTblMdlStats);
 		return sOutputFile;
 	}
@@ -224,8 +229,8 @@ public final class TukeyOutlierDetectorLogic {
 	public static String saveTableStatsAsHtml(String sFilePath, String sRemALPct) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_UpTrimSum.html";
-		String sTableTitle = "Upper Outliers Removal Summary (Removal Acceptable Limit = " + sRemALPct + ")";
+		String sOutputFile = sFileDirectoryName + sFileBaseName + "_UpperTrimStats.html";
+		String sTableTitle = "Summary of Upper Outliers Removal (Removal Acceptable Limit = " + sRemALPct + ")";
 		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
 		return sOutputFile;
 	}
