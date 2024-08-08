@@ -157,13 +157,18 @@ public final class FileServices {
 		Element eTrData = null;
 		int rowCnt = tblMdl.getRowCount();
 		for (int i = 0; i < rowCnt; i++) {
-			// Highlight the row if failed
 			if (iBoolColNbr == -1) {
+				// Default row color
 				eTrData = docHtml.createElement("tr");
 			} else if (tblMdl.getValueAt(i, iBoolColNbr).toString().equalsIgnoreCase("true")) {
+				// Highlight the row in orange if failed
+				eTrData = docHtml.createElement("tr style=\"background-color: tomato\"");
+			} else if (tblMdl.getValueAt(i, iBoolColNbr).toString().equalsIgnoreCase("na")) {
+				// Highlight the row in yellow if not applicable
 				eTrData = docHtml.createElement("tr style=\"background-color: orange\"");
 			} else {
-				eTrData = docHtml.createElement("tr style=\"background-color: lawngreen\"");
+				// Highlight the row in lawngreen if passed
+				eTrData = docHtml.createElement("tr style=\"background-color: mediumseagreen\"");
 			}
 			for (int j = 0; j < colCnt; j++) {
 				Element eTd = docHtml.createElement("td");
