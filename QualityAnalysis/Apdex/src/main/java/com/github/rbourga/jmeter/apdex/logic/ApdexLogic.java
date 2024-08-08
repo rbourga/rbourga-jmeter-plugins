@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.github.rbourga.jmeter.apdexcov.logic;
+package com.github.rbourga.jmeter.apdex.logic;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -18,7 +18,7 @@ import org.apache.jmeter.util.JMeterUtils;
 import com.github.rbourga.jmeter.common.FileServices;
 import com.github.rbourga.jmeter.common.MathMoments;
 
-public final class ApdexCoVLogic {
+public final class ApdexLogic {
 
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
@@ -27,11 +27,9 @@ public final class ApdexCoVLogic {
 					JMeterUtils.getResString("sampler label"), // Label
 					JMeterUtils.getResString("aggregate_report_count"), // # Samples
 					JMeterUtils.getResString("average"), // Average
-					"CoV %", // Coefficent of Variation
-					"CoV Rating",
 					JMeterUtils.getResString("aggregate_report_error%"), // # Error %
 					"Apdex Value",
-					"Apdex Target", // Target threshold
+					"Apdex Target (s)", // Target threshold
 					"Apdex Rating",
 					"Small Group", // shows a tick if number of samples < 100
 					"Failed" // shows a tick if value less than the specified threshold
@@ -39,8 +37,6 @@ public final class ApdexCoVLogic {
 					String.class,	// Label
 					Integer.class,	// # Samples
 					Double.class,	// Average
-					Double.class,	// Coefficient of Variation %
-					String.class,	// Coefficient of Variation Rating
 					Double.class,	// # Error %
 					Double.class,	// Apdex Value
 					Double.class,	// Apdex Target
@@ -48,21 +44,20 @@ public final class ApdexCoVLogic {
 					Boolean.class,	// Small Group
 					Boolean.class	// Failed
 					});
-	private static int PASSFAIL_TEST_COLNBR = 10;	// Position of Failed column in the table
+	private static int PASSFAIL_TEST_COLNBR = 8;	// Position of Failed column in the table
 
 
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
 	}
 
-	public static int computeApdexCoV(String sFilepath, double dApdexTgtTholdSec, double dApdexAQL, double dCoVALPct) {
+	public static int computeApdexScore(String sFilepath, double dApdexTgtTholdSec, double dApdexAQL) {
 		int iTotRcd;
 		long lSatisfiedCount, lToleratingCount;
-		BigDecimal bdApdexScore, bdApdexScoreRnd, bdCoVScore, bdCoVScoreRnd, bdErrPct , bdErrPctRnd;
+		BigDecimal bdApdexScore, bdApdexScoreRnd, bdErrPct , bdErrPctRnd;
 		BigDecimal bdApdexAQL = new BigDecimal(dApdexAQL);
-		BigDecimal bdCoVALPct = new BigDecimal(dCoVALPct);
 		Boolean bIsSmallGroup, bIsFailed;
-		String sApdexRating, sCoVRating;
+		String sApdexRating;
 		List<CSVRecord> aRcd;
 		MathMoments mathMoments;
 		Stream<CSVRecord> oPassedSamples, oSatisfiedSamples, oToleratingSamples;
@@ -78,7 +73,7 @@ public final class ApdexCoVLogic {
 		pwrTblMdlStats.clearData();
 
 		// Format the threshold as per Apdex specs
-		dApdexTgtTholdSec = ApdexCoVLogic.formatTgtTHold(dApdexTgtTholdSec);
+		dApdexTgtTholdSec = ApdexLogic.formatTgtTHold(dApdexTgtTholdSec);
 
 		// Now process the data points
 		long lApdexTgtTholdMS = (long) (dApdexTgtTholdSec * 1000); // Convert to ms as JMeter times are stored in ms
@@ -112,12 +107,6 @@ public final class ApdexCoVLogic {
 			// Set rating as per Apdex specs
 			sApdexRating = setApdexRating(bdApdexScoreRnd);
 
-			// Coeff Var processing
-			bdCoVScore = new BigDecimal(mathMoments.getCoV());
-			// Similar to error rate, round to 4 decimal places
-			bdCoVScoreRnd = bdCoVScore.setScale(4, RoundingMode.HALF_UP);
-			sCoVRating = setCoVRating(bdCoVScoreRnd);
-
 			// ErrPct formatting: round to 4 decimal places
 			bdErrPct = new BigDecimal(mathMoments.getErrorPercentage());
 			bdErrPctRnd = bdErrPct.setScale(4, RoundingMode.HALF_UP);
@@ -128,8 +117,7 @@ public final class ApdexCoVLogic {
 				bIsSmallGroup = true;
 			}
 			bIsFailed = false;
-			if ((bdApdexScoreRnd.compareTo(bdApdexAQL) == -1) ||
-				(bdCoVScoreRnd.compareTo(bdCoVALPct) != -1)) {
+			if (bdApdexScoreRnd.compareTo(bdApdexAQL) == -1) {
 				bIsFailed = true;
 				iFailedLblCnt++;
 			}
@@ -137,8 +125,6 @@ public final class ApdexCoVLogic {
 					sLbl,		// Label
 					iTotRcd,	// # Samples
 					Long.valueOf((long) mathMoments.getMean()),	// Average
-					bdCoVScoreRnd.doubleValue(),	//Cof of Var %
-					sCoVRating,	// Cof of Var Rating
 					bdErrPctRnd.doubleValue(),	//# Error %
                     bdApdexScoreRnd.doubleValue(),	//Apdex Value
                     dApdexTgtTholdSec,	// Apdex Target
@@ -183,15 +169,6 @@ public final class ApdexCoVLogic {
 		return sRating;
 	}
 
-	private static String setCoVRating(BigDecimal bdScore) {
-		String sRating = "Low";
-		if (bdScore.doubleValue() >= 0.30)
-			sRating = "High";	// high if > 30%
-		else if (bdScore.doubleValue() >= 0.10)
-			sRating = "Moderate";	// moderate if > 10%
-		return sRating;
-	}
-
 	public static boolean isApdexMinScoreOutOfRange(double dValue) {
 		return dValue < 0 || dValue > 1;
 	}
@@ -207,16 +184,16 @@ public final class ApdexCoVLogic {
 	public static String saveTableStatsAsCsv(String sFilePath) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexCoVScores.csv";
+		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexScores.csv";
 		FileServices.saveTableAsCsv(sOutputFile, pwrTblMdlStats);
 		return sOutputFile;
 	}
 
-	public static String saveTableStatsAsHtml(String sFilePath, String sApdexAQL, String sCoVALPct) {
+	public static String saveTableStatsAsHtml(String sFilePath, String sApdexAQL) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexCoVScores.html";
-		String sTableTitle = "Apdex & Coefficient of Variation Score Results (Apdex Acceptable Quality Level = " + sApdexAQL + ", CoV Acceptable Limit = " + sCoVALPct + ")";
+		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexScores.html";
+		String sTableTitle = "Apdex Score Results (Apdex Acceptable Quality Level = " + sApdexAQL + ")";
 		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
 		return sOutputFile;
 	}

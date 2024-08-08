@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.github.rbourga.jmeter.apdexcov.gui;
+package com.github.rbourga.jmeter.apdex.gui;
 
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
@@ -30,7 +30,7 @@ import org.apache.jorphan.gui.MinMaxLongRenderer;
 import org.apache.jorphan.gui.NumberRenderer;
 import org.apache.jorphan.gui.RendererUtils;
 
-import com.github.rbourga.jmeter.apdexcov.logic.ApdexCoVLogic;
+import com.github.rbourga.jmeter.apdex.logic.ApdexLogic;
 import com.github.rbourga.jmeter.common.FileServices;
 
 import kg.apc.jmeter.JMeterPluginsUtils;
@@ -38,7 +38,7 @@ import kg.apc.jmeter.JMeterPluginsUtils;
 /**
  * 
  */
-public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, Clearable {
+public class ApdexGui extends AbstractVisualizer implements ActionListener, Clearable {
 	/**
 	 * This extends the AbstractVisualizer class because it provides the easiest means to handle SampleResults.
 	 */
@@ -51,14 +51,12 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 	// Objects for the UI Panels
 	private JLabel jLblApdexTgtTholdSec = new JLabel("Apdex Target Threshold T (in seconds) ");
 	private JLabel jLblApdexAQL = new JLabel("Apdex Acceptable Quality Level [0..1] ");
-	private JLabel jLblCoVAL = new JLabel("Coefficient of Variation Acceptable Limit (%) ");
 	private JFormattedTextField jFtxtFldApdexTgtTholdSec;
 	private JFormattedTextField jFTxtFldApdexAQL;
-	private JFormattedTextField jFTxtFldCoVAL;
 	private FilePanel filePnl;
 
 	// GUI constructor
-	public ApdexCoVGui() {
+	public ApdexGui() {
 		super();
 
 		// Use standard JMeter border
@@ -85,27 +83,16 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 		jPnlApdex.add(jFtxtFldApdexTgtTholdSec);
 		jPnlApdex.setBorder(BorderFactory.createTitledBorder("Apdex Calculation Inputs"));
 
-		// Panel for Failure criteria option
+		// Panel for Apdex Pass/Fail criteria option
 		JPanel jPnlApdexFail = new JPanel(new BorderLayout());
 		NumberFormat nbrF2digit = NumberFormat.getNumberInstance();
 		nbrF2digit.setMaximumFractionDigits(2);
-		// Create Apdex Pass/Fail text field and setup format
 		jPnlApdexFail.add(jLblApdexAQL, BorderLayout.WEST);
 		jFTxtFldApdexAQL = new JFormattedTextField(nbrF2digit);
 		jFTxtFldApdexAQL.setValue(0.85); // by default, "good" rating
 		jFTxtFldApdexAQL.setColumns(4);
 		jPnlApdexFail.add(jFTxtFldApdexAQL);
 		jPnlApdexFail.setBorder(BorderFactory.createTitledBorder("Apdex Failure Criteria Specification"));
-		// Create CoV Pass/Fail text field and setup format
-		JPanel jPnlCoVFail = new JPanel(new BorderLayout());
-		NumberFormat pctInst = NumberFormat.getPercentInstance();
-		pctInst.setMaximumFractionDigits(2);
-		jPnlCoVFail.add(jLblCoVAL, BorderLayout.WEST);
-		jFTxtFldCoVAL = new JFormattedTextField(pctInst);
-		jFTxtFldCoVAL.setValue(0.3); // 30% and above considered high variation
-		jFTxtFldCoVAL.setColumns(4);
-		jPnlCoVFail.add(jFTxtFldCoVAL);
-		jPnlCoVFail.setBorder(BorderFactory.createTitledBorder("Coefficient of Variation Failure Criteria Specification"));
 
 		// Panel for selection of file
 		filePnl = new FilePanel("Read results from file and calculate Apdex & Coeff Var scores", EXTS);
@@ -118,15 +105,13 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 		jPnlCalc.add(jBtnCalc);
 
 		// Grid to display Apdex score of samplers
-		JTable jTblStats = new JTable(ApdexCoVLogic.getPwrTblMdelStats());
+		JTable jTblStats = new JTable(ApdexLogic.getPwrTblMdelStats());
 		JMeterUtils.applyHiDPI(jTblStats);
 		jTblStats.setAutoCreateRowSorter(true);
 		RendererUtils.applyRenderers(jTblStats, new TableCellRenderer[] {
 				null, // Label
 				null, // # Samples
 				new MinMaxLongRenderer("#0"), // Average
-				new NumberRenderer("#0.00%"), // Cov
-				null, // CoV Rating
 				new NumberRenderer("#0.00%"), // Error %
 				new NumberRenderer("0.00"), // Apdex score
 				new NumberRenderer("0.00"), // Target threshold
@@ -146,7 +131,6 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 		// Finally, assemble all panels
 		vrtPnl.add(jPnlApdex);
 		vrtPnl.add(jPnlApdexFail);
-		vrtPnl.add(jPnlCoVFail);
 		vrtPnl.add(filePnl);
 		vrtPnl.add(jPnlCalc);
 		vrtPnl.add(jScrollPane);
@@ -177,7 +161,7 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 	 @Override
 	public String getStaticLabel() {
 		// return JMeterPluginsUtils.prefixLabel("Apdex Score Calculator");
-		return "Apdex & Coefficient of Variation";
+		return "Apdex Score Calculator";
 	}
 
 	@Override
@@ -185,8 +169,8 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 		/* Called when user clicks on "Clear" or "Clear All" buttons.
 		 * Clears data specific to this plugin
 		 */
-		ApdexCoVLogic.getPwrTblMdelStats().clearData();
-		ApdexCoVLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
+		ApdexLogic.getPwrTblMdelStats().clearData();
+		ApdexLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
 	}
 
 	@Override
@@ -199,7 +183,7 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 			break;
 
 		case ACTION_SAVE:
-			if (ApdexCoVLogic.getPwrTblMdelStats().getRowCount() == 0) {
+			if (ApdexLogic.getPwrTblMdelStats().getRowCount() == 0) {
 				GuiPackage.showErrorMessage("Data table empty - please perform Calculate before.", "Save Table Data error");
 				return;
 			}
@@ -212,28 +196,21 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 	
 	private String saveDataModTblAsCsv() {
 		String sInFile = filePnl.getFilename();
-		return ApdexCoVLogic.saveTableStatsAsCsv(sInFile);
+		return ApdexLogic.saveTableStatsAsCsv(sInFile);
 	}
 
 	private void actionCalc() {
 		// Parse target threshold
 		double fApdexTgtTholdSec = ((Number) jFtxtFldApdexTgtTholdSec.getValue()).doubleValue();
-		if (ApdexCoVLogic.isTgtTHoldOutOfRange(fApdexTgtTholdSec)) {
+		if (ApdexLogic.isTgtTHoldOutOfRange(fApdexTgtTholdSec)) {
 			GuiPackage.showErrorMessage("Please enter an Apdex target threshold equal to or greater than 0.1.", "Apdex Threshold Setting error");
 			return;
 		}
 
 		// Parse Apdex score
 		double fApdexAQL = ((Number) jFTxtFldApdexAQL.getValue()).doubleValue();
-		if (ApdexCoVLogic.isApdexMinScoreOutOfRange(fApdexAQL)) {
+		if (ApdexLogic.isApdexMinScoreOutOfRange(fApdexAQL)) {
 			GuiPackage.showErrorMessage("Please enter a minimum Apdex score between 0 and 1.", "Apdex Score Setting error");
-			return;
-		}
-
-		// Parse Cov value
-		double fCoVALPct = ((Number) jFTxtFldCoVAL.getValue()).doubleValue();
-		if (ApdexCoVLogic.isCoVPctOutOfRange(fCoVALPct)) {
-			GuiPackage.showErrorMessage("Please enter a maximum Coefficent of Variation value >= 0.", "Coefficient of Variation Setting error");
 			return;
 		}
 
@@ -253,12 +230,12 @@ public class ApdexCoVGui extends AbstractVisualizer implements ActionListener, C
 		}
 
 		// Now, process the data
-		int iResult = ApdexCoVLogic.computeApdexCoV(sInFile, fApdexTgtTholdSec, fApdexAQL, fCoVALPct);
+		int iResult = ApdexLogic.computeApdexScore(sInFile, fApdexTgtTholdSec, fApdexAQL);
 		if (iResult == -1) {
 			GuiPackage.showErrorMessage("No samplers found in results file - please check your file.", "Input file error");
 		}
 		// Repaint the table
-		ApdexCoVLogic.getPwrTblMdelStats().fireTableDataChanged();
+		ApdexLogic.getPwrTblMdelStats().fireTableDataChanged();
 	}
 
 	@Override

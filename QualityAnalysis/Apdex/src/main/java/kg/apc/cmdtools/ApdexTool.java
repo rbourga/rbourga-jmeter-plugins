@@ -8,16 +8,16 @@ import java.util.ListIterator;
 
 import org.apache.commons.lang3.math.NumberUtils;
 
-import com.github.rbourga.jmeter.apdexcov.logic.ApdexCoVLogic;
+import com.github.rbourga.jmeter.apdex.logic.ApdexLogic;
 import com.github.rbourga.jmeter.common.FileServices;
 
 import kg.apc.cmd.UniversalRunner;
 import kg.apc.jmeter.JMeterPluginsUtils;
 import kg.apc.logging.LoggingUtils;
 
-public class ApdexCoVTool extends AbstractCMDTool{
+public class ApdexTool extends AbstractCMDTool{
 
-	public ApdexCoVTool() {
+	public ApdexTool() {
         super();
         JMeterPluginsUtils.prepareJMeterEnv(UniversalRunner.getJARLocation());
         LoggingUtils.addLoggingConfig();
@@ -26,12 +26,11 @@ public class ApdexCoVTool extends AbstractCMDTool{
 	@Override
 	protected int processParams(ListIterator args) throws UnsupportedOperationException, IllegalArgumentException {
 		/**
-		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool ApdexCoV [--help]"
+		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool Apdex [--help]"
 		 */
 		String sInFile = null;
 		String sApdexTgtTholdSec = "4";	// 4s by default
 		String sApdexAQL = "0.85";	// good by default
-		String sCoVALPct = "0.30";	// 30% max by default
 
 		if (!args.hasNext()) {
 			showHelp(System.out);
@@ -56,11 +55,6 @@ public class ApdexCoVTool extends AbstractCMDTool{
 					throw new IllegalArgumentException("Apdex Acceptable Quality Level value missing.");
 				}
 				sApdexAQL = ((String) args.next());
-			} else if (arg.equalsIgnoreCase("--cov-alim-pct")) {
-				if (!args.hasNext()) {
-					throw new IllegalArgumentException("Coefficient of Variation acceptable limit value missing.");
-				}
-				sCoVALPct = ((String) args.next());
 			}
 		}
 
@@ -76,7 +70,7 @@ public class ApdexCoVTool extends AbstractCMDTool{
 			throw new IllegalArgumentException("Apdex satisfied threshold value invalid.");
 		}
 		double fApdexTgtTholdSec = Double.parseDouble(sApdexTgtTholdSec);
-		if (ApdexCoVLogic.isTgtTHoldOutOfRange(fApdexTgtTholdSec)) {
+		if (ApdexLogic.isTgtTHoldOutOfRange(fApdexTgtTholdSec)) {
 			throw new IllegalArgumentException("Apdex satisfied threshold value T needs to be greater or equal to 0.1.");			
 		}
 		// Check apdex-min-score parameter
@@ -84,25 +78,17 @@ public class ApdexCoVTool extends AbstractCMDTool{
 			throw new IllegalArgumentException("Apdex Acceptable Quality Level value invalid.");
 		}
 		double fApdexAQL = Double.parseDouble(sApdexAQL);
-		if (ApdexCoVLogic.isApdexMinScoreOutOfRange(fApdexAQL)) {
+		if (ApdexLogic.isApdexMinScoreOutOfRange(fApdexAQL)) {
 			throw new IllegalArgumentException("Apdex Acceptable Quality Level value needs to be between 0 and 1.");			
-		}
-		// Check cov-max-pct parameter
-		if (!(NumberUtils.isCreatable(sCoVALPct))) {
-			throw new IllegalArgumentException("Coefficient of Variation acceptable limit value invalid.");
-		}
-		double fCoVALPct = Double.parseDouble(sCoVALPct);
-		if (ApdexCoVLogic.isCoVPctOutOfRange(fCoVALPct)) {
-			throw new IllegalArgumentException("Coefficient of Variation acceptable limit value needs to be greater or equal to 0.");			
 		}
 
 		// Do the job
-		int iResult = ApdexCoVLogic.computeApdexCoV(sInFile, fApdexTgtTholdSec, fApdexAQL, fCoVALPct);
+		int iResult = ApdexLogic.computeApdexScore(sInFile, fApdexTgtTholdSec, fApdexAQL);
 		if (iResult == -1) {
 			System.out.println("No samplers found in input file - please check your file.");
 		} else {
 			// Save Apdex results in an HTML file for import in DevOps tool later on
-			String htmlFilename = ApdexCoVLogic.saveTableStatsAsHtml(sInFile, sApdexAQL, sCoVALPct);
+			String htmlFilename = ApdexLogic.saveTableStatsAsHtml(sInFile, sApdexAQL);
 			System.out.println("Results saved in " + htmlFilename);
 		}
 		return iResult;
@@ -110,11 +96,10 @@ public class ApdexCoVTool extends AbstractCMDTool{
 
 	@Override
 	protected void showHelp(PrintStream os) {
-		os.println("Options for tool 'ApdexCoV': --input-file <filenameIn> "
+		os.println("Options for tool 'Apdex': --input-file <filenameIn> "
 				+ "["
 				+ "--apdex-tgt-thold-secs <satisified treshold value in secs (greater than 0.1)> "
 				+ "--apdex-aql <min Apdex score to pass (between 0 and 1)> "
-				+ "--cov-alim-pct <Coefficient of Variation acceptable limit percentage value to pass>"
 				+ "]");				
 	}
 }
