@@ -26,7 +26,7 @@ public class ApdexTool extends AbstractCMDTool{
 	@Override
 	protected int processParams(ListIterator args) throws UnsupportedOperationException, IllegalArgumentException {
 		/**
-		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool Apdex [--help]"
+		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool Apdex"
 		 */
 		String sInFile = null;
 		String sApdexTgtTholdSec = "4";	// 4s by default

@@ -26,7 +26,7 @@ public class TukeyOutlierDetectorTool extends AbstractCMDTool{
 	@Override
 	protected int processParams(ListIterator args) throws UnsupportedOperationException, IllegalArgumentException {
 		/**
-		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool ApdexCoV [--help]"
+		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool TukeyOutlierDetector"
 		 */
 		String sInFile = null;
 		String sTukeyK = "0";	// Carling's value by default

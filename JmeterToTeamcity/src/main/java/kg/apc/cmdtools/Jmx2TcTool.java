@@ -24,7 +24,7 @@ public class Jmx2TcTool extends AbstractCMDTool{
 	@Override
 	protected int processParams(ListIterator args) throws UnsupportedOperationException, IllegalArgumentException {
 		/**
-		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool Jmx2Tc [--help]"
+		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool Jmx2Tc"
 		 */
 		String sInFile = null;
 

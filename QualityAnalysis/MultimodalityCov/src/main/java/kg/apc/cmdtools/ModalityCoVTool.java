@@ -26,7 +26,7 @@ public class ModalityCoVTool extends AbstractCMDTool{
 	@Override
 	protected int processParams(ListIterator args) throws UnsupportedOperationException, IllegalArgumentException {
 		/**
-		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool ModalityCoV [--help]"
+		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool ModalityCoV"
 		 */
 		String sInFile = null;
 		String sMvalueThold = "2.4";	// 2.4 by default

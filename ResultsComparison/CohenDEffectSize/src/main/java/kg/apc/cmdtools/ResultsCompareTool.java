@@ -26,7 +26,7 @@ public class ResultsCompareTool extends AbstractCMDTool{
 	@Override
 	protected int processParams(ListIterator args) throws UnsupportedOperationException, IllegalArgumentException {
 		/**
-		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool ResultsCompare [--help]"
+		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool ResultsCompare"
 		 */
 		String sCtrlFile = null;
 		String sVarFile = null;
