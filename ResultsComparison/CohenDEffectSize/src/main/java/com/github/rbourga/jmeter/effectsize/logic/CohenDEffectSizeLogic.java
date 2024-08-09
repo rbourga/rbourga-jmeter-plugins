@@ -22,13 +22,10 @@ import com.github.rbourga.jmeter.common.MathMoments;
 public final class CohenDEffectSizeLogic {
 
 	public static final String AVERAGE_OF_AVERAGES = "OVERALL AVERAGE";
+	private static final String RATING_NOTAPPLICABLE = "Not Applicable";
 
 	private int iCountA;
 	private int iCountB;
-	private double fCoVA;
-	private double fCoVB;
-	private double dErrPctA;
-	private double dErrPctB;
 	private double fMeanA;
 	private double fMeanB;
 	private double fVarianceA;
@@ -39,10 +36,6 @@ public final class CohenDEffectSizeLogic {
 	private CohenDEffectSizeLogic(String sLbl) {
 		iCountA = 0;
 		iCountB = 0;
-		fCoVA = 0;
-		fCoVB = 0;
-		dErrPctA = 0;
-		dErrPctB = 0;
 		fMeanA = 0;
 		fMeanB = 0;
 		fVarianceA = 0;
@@ -56,18 +49,6 @@ public final class CohenDEffectSizeLogic {
 	}
 	private int getCountB() {
 		return iCountB;
-	}
-	private double getCoVA() {
-		return fCoVA;
-	}
-	private double getCoVB() {
-		return fCoVB;
-	}
-	private double getErrPctA() {
-		return dErrPctA;
-	}
-	private double getErrPctB() {
-		return dErrPctB;
 	}
 	private double getMeanA() {
 		return fMeanA;
@@ -91,12 +72,6 @@ public final class CohenDEffectSizeLogic {
 	private void setCountB(int iCount) {
 		this.iCountB = iCount;
 	}
-	private void setCoVB(double dCov) {
-		this.fCoVB = dCov;
-	}
-	private void setErrPctB(double dErrPct) {
-		this.dErrPctB = dErrPct;
-	}
 	private void setMeanB(double dMean) {
 		this.fMeanB = dMean;
 	}
@@ -114,8 +89,11 @@ public final class CohenDEffectSizeLogic {
 	private void setDiffRating(double dValue) {
 		// 1. Get direction of movement
 		String sDir = "";
-		if (dValue < 0) sDir = "decrease";
-		else if (dValue > 0) sDir = "increase";
+		if (dValue < 0) {
+			sDir = "decrease";
+		} else if (dValue > 0) {
+			sDir = "increase";
+		}
 
 		// 2. Get magnitude of movement according to Sawilowsky's rule of thumb
 		double fAbsValue = Math.abs(dValue);
@@ -143,40 +121,31 @@ public final class CohenDEffectSizeLogic {
 					JMeterUtils.getResString("sampler label"), // Label
 					"# Samples A",
 					"# Samples B",
-					"CoV A %", // Coefficents of Variation
-					"CoV B %",
-					"Error A %", // Errors
-					"Error B %",
 					"Average A", // Averages
 					"Average B",
 					"Cohen's d", // d
 					"Diff Rating", // Descriptor
-					"Failed" // shows a tick if value less than the specified threshold
+					"Failed" // true if value more than the specified threshold
 			}, new Class[] {
 					String.class, // Label
 					Integer.class, // # Samples A
 					Integer.class, // # Samples B
-					Double.class, // CoV A
-					Double.class, // CoV B
-					Double.class, // Error A %
-					Double.class, // Error B %
 					Double.class, // Average A
 					Double.class, // Average B
 					Double.class, // Cohen's d
 					String.class, // Diff Rating
-					Boolean.class // Failed
+					String.class // Failed
 			});
-	private static int PASSFAIL_TEST_COLNBR = 11;	// Position of Failed column in the table
+	private static int PASSFAIL_TEST_COLNBR = 7;	// Position of Failed column in the table
 	
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
 	}
 
 	public static int calcCohenDEffectSize(String sFilepathA, String sFilepathB, double dCohendAL) {
-		Boolean bIsFailed;
+		String sIsFailed;
 		int iTotRcd, iCntA, iCntB;
 		double dVarA, dVarB, dPooledSD, dMeanA, dMeanB, dCohend;
-		BigDecimal bdCoVScoreA, bdCoVScoreB, bdCoVScoreRndA, bdCoVScoreRndB, bdErrPctA, bdErrPctRndA, bdErrPctB, bdErrPctRndB;
 		List<CSVRecord> aRcd;
 		MathMoments mathMoments;
 
@@ -213,8 +182,6 @@ public final class CohenDEffectSizeLogic {
 			// Save some values for later analysis
 			CohenDEffectSizeLogic oCohenDEffectSizeLogic = new CohenDEffectSizeLogic(sLbl);
 			oCohenDEffectSizeLogic.iCountA = iTotRcd;
-			oCohenDEffectSizeLogic.fCoVA = mathMoments.getCoV();
-			oCohenDEffectSizeLogic.dErrPctA = mathMoments.getErrorPercentage();
 			oCohenDEffectSizeLogic.fMeanA = mathMoments.getMean();
 			oCohenDEffectSizeLogic.fVarianceA = mathMoments.getVariance();
 
@@ -239,16 +206,12 @@ public final class CohenDEffectSizeLogic {
 			if (hmCohendResults.containsKey(sLbl)) {
 				// Yes: update the Stats with B values			
 				hmCohendResults.get(sLbl).setCountB(iTotRcd);
-				hmCohendResults.get(sLbl).setCoVB(mathMoments.getCoV());
-				hmCohendResults.get(sLbl).setErrPctB(mathMoments.getErrorPercentage());
 				hmCohendResults.get(sLbl).setMeanB(mathMoments.getMean());
 				hmCohendResults.get(sLbl).setVarianceB(mathMoments.getVariance());
 			} else {
 				// No: add a new result to the list
 				CohenDEffectSizeLogic oCohenDEffectSizeLogic = new CohenDEffectSizeLogic(sLbl);
 				oCohenDEffectSizeLogic.iCountB = iTotRcd;
-				oCohenDEffectSizeLogic.fCoVB = mathMoments.getCoV();
-				oCohenDEffectSizeLogic.dErrPctB = mathMoments.getErrorPercentage();
 				oCohenDEffectSizeLogic.fMeanB = mathMoments.getMean();
 				oCohenDEffectSizeLogic.fVarianceB = mathMoments.getVariance();
 				// Add the results of analysis to hashmap for later reference
@@ -271,6 +234,8 @@ public final class CohenDEffectSizeLogic {
 				// Update the stats
 				hmCohendResults.get(sLbl).setCohenD(dCohend);
 				hmCohendResults.get(sLbl).setDiffRating(dCohend);
+			} else {
+				hmCohendResults.get(sLbl).sDiffRating = RATING_NOTAPPLICABLE;
 			}
 		}
 
@@ -278,36 +243,27 @@ public final class CohenDEffectSizeLogic {
 		TreeMap<String, CohenDEffectSizeLogic> tmResultsSorted = new TreeMap<>(hmCohendResults);
 		int iFailedLblCnt = 0;
 		for (String sLbl : tmResultsSorted.keySet() ) {
-
-			dCohend = tmResultsSorted.get(sLbl).getCohenD().doubleValue();
-			bIsFailed = false;
-			if (dCohend >=  dCohendAL) {
-				bIsFailed = true;
-				iFailedLblCnt++;
+			
+			if (tmResultsSorted.get(sLbl).getDiffRating() == RATING_NOTAPPLICABLE) {
+				sIsFailed = "na";				
+			} else {
+				sIsFailed = "false";
+				dCohend = tmResultsSorted.get(sLbl).getCohenD().doubleValue();
+				if (dCohend >=  dCohendAL) {
+					sIsFailed = "true";
+					iFailedLblCnt++;
+				}				
 			}
 
-			// Round CoV & ErrPct to 4 decimal places
-			bdCoVScoreA = new BigDecimal(tmResultsSorted.get(sLbl).getCoVA());
-			bdCoVScoreRndA = bdCoVScoreA.setScale(4, RoundingMode.HALF_UP);
-			bdCoVScoreB = new BigDecimal(tmResultsSorted.get(sLbl).getCoVB());
-			bdCoVScoreRndB = bdCoVScoreB.setScale(4, RoundingMode.HALF_UP);
-			bdErrPctA = new BigDecimal(tmResultsSorted.get(sLbl).getErrPctA());
-			bdErrPctRndA = bdErrPctA.setScale(4, RoundingMode.HALF_UP);
-			bdErrPctB = new BigDecimal(tmResultsSorted.get(sLbl).getErrPctB());
-			bdErrPctRndB = bdErrPctB.setScale(4, RoundingMode.HALF_UP);
 			Object[] oArrayRowData = {
 					sLbl,
 					tmResultsSorted.get(sLbl).getCountA(),
 					tmResultsSorted.get(sLbl).getCountB(),
-					bdCoVScoreRndA.doubleValue(),
-					bdCoVScoreRndB.doubleValue(),
-					bdErrPctRndA.doubleValue(),
-					bdErrPctRndB.doubleValue(),
 					Long.valueOf((long)tmResultsSorted.get(sLbl).getMeanA()),
 					Long.valueOf((long)tmResultsSorted.get(sLbl).getMeanB()),
 					Math.abs(tmResultsSorted.get(sLbl).getCohenD().doubleValue()),
 					tmResultsSorted.get(sLbl).getDiffRating(),
-					bIsFailed};
+					sIsFailed};
 			pwrTblMdlStats.addRow(oArrayRowData);
 		}
 
@@ -319,14 +275,10 @@ public final class CohenDEffectSizeLogic {
 
 		mathMoments = MathMoments.crteMomentsFromMeansList(alAveragesA);
 		oCohenDEffectSizeLogic.iCountA = iCntA;
-		oCohenDEffectSizeLogic.fCoVA = mathMoments.getCoV();
-		oCohenDEffectSizeLogic.dErrPctA = mathMoments.getErrorPercentage();
 		oCohenDEffectSizeLogic.fMeanA = mathMoments.getMean();
 		oCohenDEffectSizeLogic.fVarianceA = mathMoments.getVariance();
 		mathMoments = MathMoments.crteMomentsFromMeansList(alAveragesB);
 		oCohenDEffectSizeLogic.iCountB = iCntB;
-		oCohenDEffectSizeLogic.fCoVB = mathMoments.getCoV();
-		oCohenDEffectSizeLogic.dErrPctB = mathMoments.getErrorPercentage();
 		oCohenDEffectSizeLogic.fMeanB = mathMoments.getMean();
 		oCohenDEffectSizeLogic.fVarianceB = mathMoments.getVariance();
 
@@ -343,29 +295,19 @@ public final class CohenDEffectSizeLogic {
 		}
 		// Add the result to statistics table
 		dCohend = oCohenDEffectSizeLogic.getCohenD().doubleValue();
-		bIsFailed = false;
+		sIsFailed = "false";
 		if (dCohend >=  dCohendAL) {
-			bIsFailed = true;
+			sIsFailed = "true";
 		}
-		// Format Cov of averages to 4 digits
-		bdCoVScoreA = new BigDecimal(oCohenDEffectSizeLogic.getCoVA());
-		bdCoVScoreRndA = bdCoVScoreA.setScale(4, RoundingMode.HALF_UP);
-		bdCoVScoreB = new BigDecimal(oCohenDEffectSizeLogic.getCoVB());
-		bdCoVScoreRndB = bdCoVScoreB.setScale(4, RoundingMode.HALF_UP);
-
 		Object[] oArrayRowData = {
 				AVERAGE_OF_AVERAGES,
 				iCntA,
 				iCntB,
-				bdCoVScoreRndA.doubleValue(),
-				bdCoVScoreRndB.doubleValue(),
-				Double.valueOf(oCohenDEffectSizeLogic.getErrPctA()),
-                Double.valueOf(oCohenDEffectSizeLogic.getErrPctB()),
 				Long.valueOf((long)oCohenDEffectSizeLogic.getMeanA()),
 				Long.valueOf((long)oCohenDEffectSizeLogic.getMeanB()),
 				Math.abs(oCohenDEffectSizeLogic.getCohenD().doubleValue()),
 				oCohenDEffectSizeLogic.getDiffRating(),
-				bIsFailed};
+				sIsFailed};
 		pwrTblMdlStats.addRow(oArrayRowData);
 
 		return iFailedLblCnt;
@@ -397,7 +339,7 @@ public final class CohenDEffectSizeLogic {
 		return Math.sqrt(((iN1 - 1) * dVariance1 + (iN2 - 1) * dVariance2) / (iN1 + iN2 - 2));
 	}
 	
-	public static double calcCohensd(double dMean1, double dMean2, double dPooledSD) {
+	private static double calcCohensd(double dMean1, double dMean2, double dPooledSD) {
 		// returns Cohen's d, as per specs
 		return (dMean2 - dMean1) / dPooledSD;
 	}

@@ -44,7 +44,7 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 	 * This extends the AbstractVisualizer class because it provides the easiest means to handle SampleResults.
 	 */
 	private static final long serialVersionUID = 1L;
-	private static final String WIKIPAGE = "https://github.com/rbourga/rbourga-jmeter-plugins/wiki/Results-Difference-Calculator";
+	private static final String WIKIPAGE = "https://github.com/rbourga/rbourga-jmeter-plugins/wiki/Results-Comparison";
 	private static final String[] EXTS = { ".jtl", ".csv", ".tsv" };
 	private static final String ACTION_COMPARE = "compare";
 	private static final String ACTION_SAVE = "save";
@@ -102,10 +102,6 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 				null, // Label
 				null, // # Samples A
 				null, // # Samples B
-				new NumberRenderer("#0.00%"), // CoV A
-				new NumberRenderer("#0.00%"), // CoV B
-				new NumberRenderer("#0.00%"), // Error A
-				new NumberRenderer("#0.00%"), // Error B
 				new MinMaxLongRenderer("#0"), // Average A
 				new MinMaxLongRenderer("#0"), // Average B
 				new NumberRenderer("0.00"), // Cohen's d
