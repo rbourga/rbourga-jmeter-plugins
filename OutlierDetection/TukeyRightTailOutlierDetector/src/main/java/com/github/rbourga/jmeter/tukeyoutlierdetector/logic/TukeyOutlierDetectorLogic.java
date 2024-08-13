@@ -57,7 +57,7 @@ public final class TukeyOutlierDetectorLogic {
 		 * Will remove only upper outliers (which are bigger than the upper boundary).
 		 */
 		boolean bIsUpperRemoved, bIsSmallGroup, bIsFailed;
-		int iInitLblCnt, iUpprOutlierCnt;
+		int iInitPassedLblCnt, iUpprOutlierCnt;
 		double fUpFence, fUpFenceMin;
 		String sKrounded, sOutputFile;
 		List<CSVRecord> aLblRcd, mergedOutliers = null, mergedWithoutOutliers = null, aLblRcdPassed = null;
@@ -88,17 +88,17 @@ public final class TukeyOutlierDetectorLogic {
 			aLblRcdPassed = aLblRcd.stream()
 					.filter(rcd -> rcd.get("success").equals("true"))
 					.collect(Collectors.toList());
-			iInitLblCnt = aLblRcdPassed.size();
+			iInitPassedLblCnt = aLblRcdPassed.size();
 
 			// Get some stats for this set of samples
 			mathMoments = MathMoments.crteMomentsFromRecordsList(aLblRcdPassed);
 
 			// Only look for outliers if there are at least four items to compare
-			if (iInitLblCnt > 3) {
+			if (iInitPassedLblCnt > 3) {
 				// Initialize k
 				if (fTukeyK == 0) {
 					// Use Carling's formulae and round to 2 decimal places
-					fK = ((17.63 * iInitLblCnt) - 23.64) / ((7.74 * iInitLblCnt) - 3.71);
+					fK = ((17.63 * iInitPassedLblCnt) - 23.64) / ((7.74 * iInitPassedLblCnt) - 3.71);
 					sKrounded = df2Decimals.format(fK);
 					// Convert value back to double
 					fK = Double.parseDouble(sKrounded);
@@ -143,8 +143,8 @@ public final class TukeyOutlierDetectorLogic {
 			if (aLblRcdPassed.size() < 100) {
 				bIsSmallGroup = true;
 			}
-			iUpprOutlierCnt = iInitLblCnt - aLblRcdPassed.size();
-			BigDecimal bdUpprOutlierPct = new BigDecimal((double) iUpprOutlierCnt / (double) iInitLblCnt);
+			iUpprOutlierCnt = iInitPassedLblCnt - aLblRcdPassed.size();
+			BigDecimal bdUpprOutlierPct = (iInitPassedLblCnt == 0) ? new BigDecimal(0) : new BigDecimal((double) iUpprOutlierCnt / (double) iInitPassedLblCnt);
 			// Round % to 4 decimal places
 			BigDecimal bdUpprOutlierPctRnd = bdUpprOutlierPct.setScale(4, RoundingMode.HALF_UP);
 			bIsFailed = false;
@@ -155,7 +155,7 @@ public final class TukeyOutlierDetectorLogic {
 			// Update the statistics table
 			Object[] oArrayRowData = {
 					sLbl, // Label
-					iInitLblCnt, // # Samples
+					iInitPassedLblCnt, // # Samples
 					Long.valueOf((long) mathMoments.getMean()), // Average
 					fUpFenceMin, // Upper Fence
 					iUpprOutlierCnt, // # Removed
