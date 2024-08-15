@@ -8,6 +8,8 @@ import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jmeter.gui.util.PowerTableModel;
@@ -33,7 +35,7 @@ public final class MultimodalityCoVLogic {
 					"CoV Rating",
 					"mValue",
 					"Multimodal", // true if multimodal, false otherwise
-					"Failed" // shows a tick if excessive CoV or multimodal
+					"Failed" // true if excessive CoV or multimodal
 			}, new Class[] {
 					String.class,	// Label
 					Integer.class,	// # Samples
@@ -43,8 +45,8 @@ public final class MultimodalityCoVLogic {
 					Double.class,	// Coefficient of Variation %
 					String.class,	// Coefficient of Variation Rating
 					Double.class,	// mValue
-					Boolean.class,	// Multimodal
-					Boolean.class	// Failed
+					String.class,	// Multimodal
+					String.class	// Failed
 					});
 	private static int PASSFAIL_TEST_COLNBR = 9;	// Position of Failed column in the table
 
@@ -59,7 +61,7 @@ public final class MultimodalityCoVLogic {
 					String.class,	// Label
 					Double.class,	// Min
 					Double.class,	// Bin size
-					Boolean.class,	// Multimodal
+					String.class,	// Multimodal
 					Boolean.class	// Check
 					});
 
@@ -81,7 +83,7 @@ public final class MultimodalityCoVLogic {
 		BigDecimal bdMvalue, bdMvalueRnd, bdCoVScore, bdCoVScoreRnd;
 		BigDecimal bdMvalueThold = new BigDecimal(dMvalueThold);
 		BigDecimal bdCoVALPct = new BigDecimal(dCoVALPct);
-		Boolean bIsMultimodal, bIsFailed;
+		String sIsCoVfailed, sIsMultimodal, sIsFailed;
 		String sCoVRating;
 		List<CSVRecord> aRcd;
 		MathMoments mathMoments;
@@ -100,52 +102,58 @@ public final class MultimodalityCoVLogic {
 		binsMap.clear();
 
 		// Now process the data points
+		// Loop through the Labels in natural order and compute the values
 		int iFailedLblCnt = 0;
-
-		// Loop through the Labels in the dataset
-		for (String sLbl : rcdHashMap.keySet()) {
-			aRcd = rcdHashMap.get(sLbl);
+		TreeMap<String, List<CSVRecord>> tmSortedRcd = new TreeMap<>(rcdHashMap);
+		for (String sLbl : tmSortedRcd.keySet()) {
+			aRcd = tmSortedRcd.get(sLbl);
 			iTotRcd = aRcd.size();
 
 			// Get some stats for this set of samples
 			mathMoments = MathMoments.crteMomentsFromRecordsList(aRcd);
-			
-			// Calculate the mValue
+
+			// Similar to error rate, round the CoV to 4 decimal places
+			bdCoVScore = new BigDecimal(mathMoments.getCoV());
+			bdCoVScoreRnd = bdCoVScore.setScale(4, RoundingMode.HALF_UP);
+			// Get the rating of Coefficient of Variation
+			sCoVRating = setCoVRating(bdCoVScoreRnd);
+			sIsCoVfailed = "false";
+			if (bdCoVScoreRnd.compareTo(bdCoVALPct) != -1) {
+				sIsCoVfailed = "true";
+            }
+
+			// Calculate the mValue and round to 2 decimal places
 			mValueCalculator = MValueCalculator.calculate(aRcd, mathMoments);
 			bdMvalue = new BigDecimal(mValueCalculator.getMvalue());
-			// Round to 2 decimal places
 			bdMvalueRnd = bdMvalue.setScale(1, RoundingMode.HALF_UP);
-			bIsMultimodal = false;
+			// Check if the sample is multimodal
+			sIsMultimodal = "false";
 			if (bdMvalueRnd.compareTo(bdMvalueThold) != -1) {
-				bIsMultimodal = true;
+				sIsMultimodal = "true";
 			}
+			
 			// Add the bins to the corresponding label
 			binsMap.put(sLbl, mValueCalculator.getiBinsArray());
 
-			// Calculate the Coefficient of Variation
-			bdCoVScore = new BigDecimal(mathMoments.getCoV());
-			// Similar to error rate, round to 4 decimal places
-			bdCoVScoreRnd = bdCoVScore.setScale(4, RoundingMode.HALF_UP);
-			sCoVRating = setCoVRating(bdCoVScoreRnd);
-
-			// Update the statistics table
-			bIsFailed = false;
-			if (bIsMultimodal ||
-				(bdCoVScoreRnd.compareTo(bdCoVALPct) != -1)) {
-				bIsFailed = true;
+			// Tag the pass/fail status
+			sIsFailed = "false";
+			if (sIsMultimodal == "true" || sIsCoVfailed == "true") {
+				sIsFailed = "true";
 				iFailedLblCnt++;
 			}
+
+			// Update the stats table with the results
 			Object[] oArrayRowDataStat = {
 					sLbl,		// Label
 					iTotRcd,	// # Samples
 					Long.valueOf((long) mathMoments.getMean()),	// Average
 					Long.valueOf((long) mathMoments.getMin()),	// Min
 					Long.valueOf((long) mathMoments.getMax()),	// Max
-					bdCoVScoreRnd.doubleValue(),	//Cof of Var %
-					sCoVRating,	// Cof of Var Rating
+					bdCoVScoreRnd.doubleValue(),	//Coef of Var %
+					sCoVRating,	// Coef of Var Rating
 					bdMvalueRnd.doubleValue(),	// mValue
-					bIsMultimodal,	// Multimodal
-					bIsFailed };	// shows a tick if values more than the specified thresholds
+					sIsMultimodal,	// Multimodal
+					sIsFailed };	// true if values more than the specified thresholds
 			pwrTblMdlStats.addRow(oArrayRowDataStat);
 			
 			// Update the rows table
@@ -153,11 +161,11 @@ public final class MultimodalityCoVLogic {
 					sLbl,		// Label
 					Long.valueOf((long) mathMoments.getMin()),	// Min
 					Long.valueOf((long) mValueCalculator.getBinSize()),	// Bin Size
-					bIsMultimodal,	// Multimodal
+					sIsMultimodal,	// Multimodal
 					false };	// nothing selected by default
-			pwrTblMdlRows.addRow(oArrayRowDataRow);
-
+			pwrTblMdlRows.addRow(oArrayRowDataRow);			
 		}
+			
 		return iFailedLblCnt;
 	}
 

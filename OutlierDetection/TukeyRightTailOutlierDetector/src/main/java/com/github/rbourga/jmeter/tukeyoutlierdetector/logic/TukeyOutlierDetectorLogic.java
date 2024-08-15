@@ -9,6 +9,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FilenameUtils;
@@ -34,8 +35,8 @@ public final class TukeyOutlierDetectorLogic {
 					"Upper Fence",
 					"# Removed", // number of samples that have been discarded
 					"Removed %", // percentage of samples that have been discarded
-					"Small Group", // shows a tick if remaining number of samples < 100
-					"Failed" // shows a tick if value greater than the specified threshold
+					"Small Group", // true if remaining number of samples < 100
+					"Failed" // true if value greater than the specified threshold
 			}, new Class[] {
 					String.class, // Label
 					Integer.class, // # Samples
@@ -43,8 +44,8 @@ public final class TukeyOutlierDetectorLogic {
 					Double.class, // Upper Fence
 					Integer.class, // # Removed
 					Double.class, // # Removed %
-					Boolean.class, // Small Group
-					Boolean.class // Failed
+					String.class, // Small Group
+					String.class // Failed
 			});
 	private static int PASSFAIL_TEST_COLNBR = 7;	// Position of Failed column in the table
 
@@ -56,10 +57,10 @@ public final class TukeyOutlierDetectorLogic {
 		/*
 		 * Will remove only upper outliers (which are bigger than the upper boundary).
 		 */
-		boolean bIsUpperRemoved, bIsSmallGroup, bIsFailed;
+		boolean bIsUpperRemoved;
 		int iInitPassedLblCnt, iUpprOutlierCnt;
 		double fUpFence, fUpFenceMin;
-		String sKrounded, sOutputFile;
+		String sKrounded, sOutputFile, sIsSmallGroup, sIsFailed;
 		List<CSVRecord> aLblRcd, mergedOutliers = null, mergedWithoutOutliers = null, aLblRcdPassed = null;
 		MathMoments mathMoments;
 
@@ -76,11 +77,12 @@ public final class TukeyOutlierDetectorLogic {
 		// Clear any statistics from a previous operation
 		pwrTblMdlStats.clearData();
 
-		// 2. Now, process the data points...
+		// Now, process the data points in natural order...
 		int iFailedLblCnt = 0;
+		TreeMap<String, List<CSVRecord>> tmSortedRcd = new TreeMap<>(rcdHashMap);
 		// Loop through the Labels in the dataset
-		for (String sLbl : rcdHashMap.keySet()) {
-			aLblRcd = rcdHashMap.get(sLbl);
+		for (String sLbl : tmSortedRcd.keySet()) {
+			aLblRcd = tmSortedRcd.get(sLbl);
 			fUpFence = 0.0;
 			fUpFenceMin = Double.MAX_VALUE;
 
@@ -139,17 +141,17 @@ public final class TukeyOutlierDetectorLogic {
 			}
 
 			// Save the results in the table
-			bIsSmallGroup = false;
+			sIsSmallGroup = "false";
 			if (aLblRcdPassed.size() < 100) {
-				bIsSmallGroup = true;
+				sIsSmallGroup = "true";
 			}
 			iUpprOutlierCnt = iInitPassedLblCnt - aLblRcdPassed.size();
 			BigDecimal bdUpprOutlierPct = (iInitPassedLblCnt == 0) ? new BigDecimal(0) : new BigDecimal((double) iUpprOutlierCnt / (double) iInitPassedLblCnt);
 			// Round % to 4 decimal places
 			BigDecimal bdUpprOutlierPctRnd = bdUpprOutlierPct.setScale(4, RoundingMode.HALF_UP);
-			bIsFailed = false;
+			sIsFailed = "false";
 			if (bdUpprOutlierPctRnd.compareTo(bdMaxRemPct) != -1) {
-				bIsFailed = true;
+				sIsFailed = "true";
 				iFailedLblCnt++;
 			}
 			// Update the statistics table
@@ -160,8 +162,8 @@ public final class TukeyOutlierDetectorLogic {
 					fUpFenceMin, // Upper Fence
 					iUpprOutlierCnt, // # Removed
 					bdUpprOutlierPctRnd.doubleValue(), // Removed %
-					bIsSmallGroup, // Small Group
-					bIsFailed };
+					sIsSmallGroup, // Small Group
+					sIsFailed };
 			pwrTblMdlStats.addRow(oArrayRowData);
 		}
 

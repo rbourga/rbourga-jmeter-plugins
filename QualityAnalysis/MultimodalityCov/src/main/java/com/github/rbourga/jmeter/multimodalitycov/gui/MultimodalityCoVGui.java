@@ -251,9 +251,9 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		/* Called when user clicks on "Clear" or "Clear All" buttons.
 		 * Clears data specific to this plugin
 		 */
+		MultimodalityCoVLogic.getBinsMap().clear();
 		MultimodalityCoVLogic.getPwrTblMdelStats().clearData();
 		MultimodalityCoVLogic.getPwrTblMdelRows().clearData();
-		MultimodalityCoVLogic.getBinsMap().clear();
 
 		 // Repaint the tables
 		MultimodalityCoVLogic.getPwrTblMdelStats().fireTableDataChanged();
@@ -347,7 +347,7 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 			}
 		}
 		
-		// Check if some rows are selected and that no bin szie is equal to 0
+		// Check if some rows are selected and that no bin size is equal to 0
 		if (aliCheckedRow.isEmpty()) {
 			return null;
 		} else {
@@ -360,20 +360,6 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
                 }
 			}
 		}
-		
-		/*
-		// Ensure the checked rows have same bin size
-		if (aliCheckedRow.size() > 1) {
-			int iNbrOfChecks = aliCheckedRow.size();
-			for (int i = 1; i < iNbrOfChecks; i++) {
-				long lBinSizei = (long) jTblRows.getValueAt(aliCheckedRow.get(i), iColBin);
-                if (lBinSizeFirst != lBinSizei) {
-                    GuiPackage.showErrorMessage("Bin sizes of selected rows are different - please select rows with same bin size.", "Chart Data error");
-                    return null;
-                }
-			}
-		}
-		*/		
 		
 		// Create a DefaultCategoryDataset which includes the bin ranges as categories.
 		Map<String, int[]> binsMap = MultimodalityCoVLogic.getBinsMap();

@@ -111,7 +111,7 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 		RendererUtils.applyRenderers(jTblStats, new TableCellRenderer[] {
 				null, // Label
 				null, // # Samples
-				new MinMaxLongRenderer("#0"), // Average
+//				new MinMaxLongRenderer("#0"), // Average
 				new NumberRenderer("#0.00%"), // Error %
 				new NumberRenderer("0.00"), // Apdex score
 				new NumberRenderer("0.00"), // Target threshold

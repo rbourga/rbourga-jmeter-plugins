@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Stream;
 
 import org.apache.commons.csv.CSVRecord;
@@ -26,25 +27,29 @@ public final class ApdexLogic {
 			new String[] {
 					JMeterUtils.getResString("sampler label"), // Label
 					JMeterUtils.getResString("aggregate_report_count"), // # Samples
-					JMeterUtils.getResString("average"), // Average
+/*
+ * Hiding Average as it should be calculated only on successful results and without outliers
+ * whereas Apdex requires the full set of results.
+ */
+//					JMeterUtils.getResString("average"), // Average
 					JMeterUtils.getResString("aggregate_report_error%"), // # Error %
 					"Apdex Value",
 					"Apdex Target (s)", // Target threshold
 					"Apdex Rating",
-					"Small Group", // shows a tick if number of samples < 100
-					"Failed" // shows a tick if value less than the specified threshold
+					"Small Group", // true if number of samples < 100
+					"Failed" // true if value less than the specified threshold
 			}, new Class[] {
 					String.class,	// Label
 					Integer.class,	// # Samples
-					Double.class,	// Average
+//					Double.class,	// Average
 					Double.class,	// # Error %
 					Double.class,	// Apdex Value
 					Double.class,	// Apdex Target
 					String.class,	// Apdex Rating
-					Boolean.class,	// Small Group
-					Boolean.class	// Failed
+					String.class,	// Small Group
+					String.class	// Failed
 					});
-	private static int PASSFAIL_TEST_COLNBR = 8;	// Position of Failed column in the table
+	private static int PASSFAIL_TEST_COLNBR = 7;	// Position of Failed column in the table
 
 
 	public static PowerTableModel getPwrTblMdelStats() {
@@ -56,8 +61,7 @@ public final class ApdexLogic {
 		long lSatisfiedCount, lToleratingCount;
 		BigDecimal bdApdexScore, bdApdexScoreRnd, bdErrPct , bdErrPctRnd;
 		BigDecimal bdApdexAQL = new BigDecimal(dApdexAQL);
-		Boolean bIsSmallGroup, bIsFailed;
-		String sApdexRating;
+		String sApdexRating, sIsSmallGroup, sIsFailed;
 		List<CSVRecord> aRcd;
 		MathMoments mathMoments;
 		Stream<CSVRecord> oPassedSamples, oSatisfiedSamples, oToleratingSamples;
@@ -75,13 +79,13 @@ public final class ApdexLogic {
 		// Format the threshold as per Apdex specs
 		dApdexTgtTholdSec = ApdexLogic.formatTgtTHold(dApdexTgtTholdSec);
 
-		// Now process the data points
 		long lApdexTgtTholdMS = (long) (dApdexTgtTholdSec * 1000); // Convert to ms as JMeter times are stored in ms
 		long lApdexTolTholdMS = 4 * lApdexTgtTholdMS; // Tolerate = 4xTarget, as per Apdex specs
 		int iFailedLblCnt = 0;
-		// Loop through the Labels in the dataset
-		for (String sLbl : rcdHashMap.keySet()) {
-			aRcd = rcdHashMap.get(sLbl);
+		// Now, process the data points in natural order...
+		TreeMap<String, List<CSVRecord>> tmSortedRcd = new TreeMap<>(rcdHashMap);
+		for (String sLbl : tmSortedRcd.keySet()) {
+			aRcd = tmSortedRcd.get(sLbl);
 			iTotRcd = aRcd.size();
 
 			// Get some stats for this set of samples
@@ -112,25 +116,25 @@ public final class ApdexLogic {
 			bdErrPctRnd = bdErrPct.setScale(4, RoundingMode.HALF_UP);
 
 			// Finally update the statistics table
-			bIsSmallGroup = false;
+			sIsSmallGroup = "false";
 			if (iTotRcd < 100) {
-				bIsSmallGroup = true;
+				sIsSmallGroup = "true";
 			}
-			bIsFailed = false;
+			sIsFailed = "false";
 			if (bdApdexScoreRnd.compareTo(bdApdexAQL) == -1) {
-				bIsFailed = true;
+				sIsFailed = "true";
 				iFailedLblCnt++;
 			}
 			Object[] oArrayRowData = {
 					sLbl,		// Label
 					iTotRcd,	// # Samples
-					Long.valueOf((long) mathMoments.getMean()),	// Average
+//					Long.valueOf((long) mathMoments.getMean()),	// Average
 					bdErrPctRnd.doubleValue(),	//# Error %
                     bdApdexScoreRnd.doubleValue(),	//Apdex Value
                     dApdexTgtTholdSec,	// Apdex Target
                     sApdexRating,    // Apdex Rating
-                    bIsSmallGroup,    // shows a tick if number of samples < 100
-					bIsFailed };	// shows a tick if value less than the specified threshold
+                    sIsSmallGroup,    // shows a tick if number of samples < 100
+					sIsFailed };	// shows a tick if value less than the specified threshold
 
 			pwrTblMdlStats.addRow(oArrayRowData);
 		}
