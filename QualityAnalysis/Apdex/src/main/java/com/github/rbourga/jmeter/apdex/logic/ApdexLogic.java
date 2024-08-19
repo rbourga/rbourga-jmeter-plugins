@@ -110,7 +110,7 @@ public final class ApdexLogic {
 			// ErrPct formatting: round to 4 decimal places
 			oFailedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("false"));
 			lFailedCount = oFailedSamples.count();
-			bdErrPct = new BigDecimal((double) (lFailedCount / iTotRcd));
+			bdErrPct = new BigDecimal((double) lFailedCount / iTotRcd);
 			bdErrPctRnd = bdErrPct.setScale(4, RoundingMode.HALF_UP);
 
 			// Finally update the statistics table
