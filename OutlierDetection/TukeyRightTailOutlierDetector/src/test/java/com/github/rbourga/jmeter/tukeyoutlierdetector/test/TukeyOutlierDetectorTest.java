@@ -9,32 +9,35 @@ import org.apache.jmeter.save.CSVSaveService;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import kg.apc.emulators.TestJMeterUtils;
 import com.github.rbourga.jmeter.common.TestResultsServices;
+
+import kg.apc.emulators.TestJMeterUtils;
 
 public class TukeyOutlierDetectorTest {
 
 	private static String sJMeterTempDir;
 
 	@BeforeClass
-	public static void setUpClass() throws Exception {	
+	public static void setUpClass() throws Exception {
 		TestJMeterUtils.createJmeterEnv();
 		sJMeterTempDir = TestJMeterUtils.getTempDir();
 	}
 
 	public TukeyOutlierDetectorTest() {
 	}
-	
+
 	@Test
 	public void crteDummyTestResults() {
 		/*
-		 * This method creates bogus test results for manual testing of the OutlierDetector plugin afterwards.
+		 * This method creates bogus test results for manual testing of the
+		 * OutlierDetector plugin afterwards.
 		 */
 		// Setup the results file writer
 		String sFilePath = sJMeterTempDir + "/TestResultsWithOutliers.csv";
 		PrintWriter oPrintWriter = TestResultsServices.initCSVtestResultsFile(sFilePath);
 
-        // Now create 120 results with outliers in the middle, transform them into events and save them via the CSVservice
+		// Now create 120 results with outliers in the middle, transform them into
+		// events and save them via the CSVservice
 		long lEnd;
 		long lInitial = System.currentTimeMillis();
 		SampleEvent oSampleEvent = null;
@@ -49,7 +52,7 @@ public class TukeyOutlierDetectorTest {
 			oSampleResult.setSampleLabel("BogusUnitTest");
 			oSampleEvent = TestResultsServices.resultToEvent(oSampleResult, false);
 			oPrintWriter.println(CSVSaveService.resultToDelimitedString(oSampleEvent));
-			// Move the time for the next result 
+			// Move the time for the next result
 			lStart = lEnd;
 		}
 
@@ -60,7 +63,7 @@ public class TukeyOutlierDetectorTest {
 			oSampleResult.setSampleLabel("BogusUnitTest");
 			oSampleEvent = TestResultsServices.resultToEvent(oSampleResult, true);
 			oPrintWriter.println(CSVSaveService.resultToDelimitedString(oSampleEvent));
-			// Move the time for the next result 
+			// Move the time for the next result
 			lStart = lEnd;
 		}
 
@@ -71,7 +74,7 @@ public class TukeyOutlierDetectorTest {
 			oSampleResult.setSampleLabel("BogusUnitTest");
 			oSampleEvent = TestResultsServices.resultToEvent(oSampleResult, true);
 			oPrintWriter.println(CSVSaveService.resultToDelimitedString(oSampleEvent));
-			// Move the time for the next result 
+			// Move the time for the next result
 			lStart = lEnd;
 		}
 
@@ -82,16 +85,16 @@ public class TukeyOutlierDetectorTest {
 			oSampleResult.setSampleLabel("BogusUnitTest");
 			oSampleEvent = TestResultsServices.resultToEvent(oSampleResult, true);
 			oPrintWriter.println(CSVSaveService.resultToDelimitedString(oSampleEvent));
-			// Move the time for the next result 
+			// Move the time for the next result
 			lStart = lEnd;
 		}
 
 		oPrintWriter.close();
 		System.out.println("*****");
 		System.out.println("");
-		System.out.println("***** TukeyOutlierDetectorTest: for unit tests, get a test file at " + sJMeterTempDir); 
+		System.out.println("***** TukeyOutlierDetectorTest: for unit tests, get a test file at " + sJMeterTempDir);
 		System.out.println("");
 		System.out.println("*****");
-    }
+	}
 
 }
