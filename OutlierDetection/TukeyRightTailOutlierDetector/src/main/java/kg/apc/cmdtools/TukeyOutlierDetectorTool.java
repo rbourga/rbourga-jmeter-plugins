@@ -15,22 +15,23 @@ import kg.apc.cmd.UniversalRunner;
 import kg.apc.jmeter.JMeterPluginsUtils;
 import kg.apc.logging.LoggingUtils;
 
-public class TukeyOutlierDetectorTool extends AbstractCMDTool{
+public class TukeyOutlierDetectorTool extends AbstractCMDTool {
 
 	public TukeyOutlierDetectorTool() {
-        super();
-        JMeterPluginsUtils.prepareJMeterEnv(UniversalRunner.getJARLocation());
-        LoggingUtils.addLoggingConfig();
+		super();
+		JMeterPluginsUtils.prepareJMeterEnv(UniversalRunner.getJARLocation());
+		LoggingUtils.addLoggingConfig();
 	}
 
 	@Override
 	protected int processParams(ListIterator args) throws UnsupportedOperationException, IllegalArgumentException {
 		/**
-		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool TukeyOutlierDetector"
+		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool
+		 * TukeyOutlierDetector"
 		 */
 		String sInFile = null;
-		String sTukeyK = "0";	// Carling's value by default
-		String sRemALPct = "0.20";	// 20% max by default
+		String sTukeyK = "0"; // Carling's value by default
+		String sRemALPct = "0.20"; // 20% max by default
 
 		if (!args.hasNext()) {
 			showHelp(System.out);
@@ -69,11 +70,8 @@ public class TukeyOutlierDetectorTool extends AbstractCMDTool{
 		if (!(NumberUtils.isCreatable(sTukeyK))) {
 			throw new IllegalArgumentException("Tukey k value invalid.");
 		}
-		if (!(sTukeyK.equals("0")) &&
-			!(sTukeyK.equals("0.0")) &&
-			!(sTukeyK.equals("1.5")) &&
-			!(sTukeyK.equals("3")) &&
-			!(sTukeyK.equals("3.0"))) {
+		if (!(sTukeyK.equals("0")) && !(sTukeyK.equals("0.0")) && !(sTukeyK.equals("1.5")) && !(sTukeyK.equals("3"))
+				&& !(sTukeyK.equals("3.0"))) {
 			throw new IllegalArgumentException("Unacceptable Tukey k value (only 0, 1.5 or 3 accepted).");
 		}
 		// Check rem-alim-pct parameter
@@ -82,7 +80,8 @@ public class TukeyOutlierDetectorTool extends AbstractCMDTool{
 		}
 		double fRemALPct = Double.parseDouble(sRemALPct);
 		if (TukeyOutlierDetectorLogic.isTrimPctOutOfRange(fRemALPct)) {
-			throw new IllegalArgumentException("Upper outlier removal acceptable limit value needs to be greater or equal to 0.");			
+			throw new IllegalArgumentException(
+					"Upper outlier removal acceptable limit value needs to be greater or equal to 0.");
 		}
 
 		// Do the job
@@ -99,10 +98,8 @@ public class TukeyOutlierDetectorTool extends AbstractCMDTool{
 
 	@Override
 	protected void showHelp(PrintStream os) {
-		os.println("Options for tool 'TukeyOutlierDetector': --input-file <filenameIn> "
-				+ "["
+		os.println("Options for tool 'TukeyOutlierDetector': --input-file <filenameIn> " + "["
 				+ "--tukey-k <k (0 (Carling), 1.5 or 3, default = 0)> "
-				+ "--rem-alim-pct <Removal acceptable limit percentage value to pass (default = 20%)>"
-				+ "]");				
+				+ "--rem-alim-pct <Removal acceptable limit percentage value to pass (default = 20%)>" + "]");
 	}
 }

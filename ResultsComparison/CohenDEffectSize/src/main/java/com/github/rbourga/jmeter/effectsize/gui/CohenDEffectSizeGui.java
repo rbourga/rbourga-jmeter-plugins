@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package com.github.rbourga.jmeter.effectsize.gui;
 
@@ -37,11 +37,12 @@ import com.github.rbourga.jmeter.effectsize.logic.CohenDEffectSizeLogic;
 import kg.apc.jmeter.JMeterPluginsUtils;
 
 /**
- * 
+ *
  */
 public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionListener, Clearable {
 	/**
-	 * This extends the AbstractVisualizer class because it provides the easiest means to handle SampleResults.
+	 * This extends the AbstractVisualizer class because it provides the easiest
+	 * means to handle SampleResults.
 	 */
 	private static final long serialVersionUID = 1L;
 	private static final String WIKIPAGE = "https://github.com/rbourga/rbourga-jmeter-plugins/wiki/Results-Comparison";
@@ -98,8 +99,7 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 		JTable jTblStats = new JTable(CohenDEffectSizeLogic.getPwrTblMdelStats());
 		JMeterUtils.applyHiDPI(jTblStats);
 		jTblStats.setAutoCreateRowSorter(true);
-		RendererUtils.applyRenderers(jTblStats, new TableCellRenderer[] {
-				null, // Label
+		RendererUtils.applyRenderers(jTblStats, new TableCellRenderer[] { null, // Label
 				null, // # Samples A
 				null, // # Samples B
 				new MinMaxLongRenderer("#0"), // Average A
@@ -130,10 +130,11 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 	}
 
 	/**
-	 * Section to override AbstractVisualizer's methods 
+	 * Section to override AbstractVisualizer's methods
 	 */
+	@Override
 	public Collection<String> getMenuCategories() {
-		//  Add this visualizer to the Non-Test Elements menu of the JMeter GUI
+		// Add this visualizer to the Non-Test Elements menu of the JMeter GUI
 		return Arrays.asList(MenuFactory.NON_TEST_ELEMENTS);
 	}
 
@@ -146,8 +147,8 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 		 */
 		return this.getClass().getSimpleName();
 	}
-	
-	 @Override
+
+	@Override
 	public String getStaticLabel() {
 		// return JMeterPluginsUtils.prefixLabel("Apdex Score Calculator");
 		return "Results Comparator";
@@ -155,8 +156,9 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 
 	@Override
 	public void clearData() {
-		/* Called when user clicks on "Clear" or "Clear All" buttons.
-		 * Clears data specific to this plugin
+		/*
+		 * Called when user clicks on "Clear" or "Clear All" buttons. Clears data
+		 * specific to this plugin
 		 */
 		CohenDEffectSizeLogic.getPwrTblMdelStats().clearData();
 		CohenDEffectSizeLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
@@ -165,7 +167,7 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 	@Override
 	public void actionPerformed(ActionEvent actionEvnt) {
 		String sActionCmd = actionEvnt.getActionCommand();
-		
+
 		switch (sActionCmd) {
 		case ACTION_COMPARE:
 			actionCompare();
@@ -173,7 +175,8 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 
 		case ACTION_SAVE:
 			if (CohenDEffectSizeLogic.getPwrTblMdelStats().getRowCount() == 0) {
-				GuiPackage.showErrorMessage("Data table empty - please perform Compare before.", "Save Table Data error");
+				GuiPackage.showErrorMessage("Data table empty - please perform Compare before.",
+						"Save Table Data error");
 				return;
 			}
 			String csvFilename = saveDataModTblAsCsv();
@@ -182,7 +185,7 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 		default:
 		}
 	}
-	
+
 	private String saveDataModTblAsCsv() {
 		String sInFileB = filePnlB.getFilename();
 		return CohenDEffectSizeLogic.saveTableStatsAsCsv(sInFileB);
@@ -192,35 +195,44 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 		// Parse Cohen's d threshold
 		double fCohendAL = ((Number) jFTxtFldCohendAL.getValue()).doubleValue();
 		if (CohenDEffectSizeLogic.isCohendALOutOfRange(fCohendAL)) {
-			GuiPackage.showErrorMessage("Please enter an acceptable limit value equal to or greater than 0.", "Cohen's d Threshold Setting error");
+			GuiPackage.showErrorMessage("Please enter an acceptable limit value equal to or greater than 0.",
+					"Cohen's d Threshold Setting error");
 			return;
 		}
 
 		// Parse filenames
-		String sInFileA = filePnlA.getFilename();		
+		String sInFileA = filePnlA.getFilename();
 		if (FileServices.isFilenameEmpty(sInFileA)) {
-			GuiPackage.showErrorMessage("Control file name missing - please enter a filename.", "Input Control file error");
+			GuiPackage.showErrorMessage("Control file name missing - please enter a filename.",
+					"Input Control file error");
 			return;
 		}
 		if (!(FileServices.isFileExist(sInFileA))) {
-			GuiPackage.showErrorMessage("Cannot find Control file - please enter a valid filename.", "Input Control file error");
+			GuiPackage.showErrorMessage("Cannot find Control file - please enter a valid filename.",
+					"Input Control file error");
 			return;
 		}
 		if (!(FileServices.isFileValid(sInFileA))) {
-			GuiPackage.showErrorMessage("Control file is empty or contains invalid data - please enter a valid results file.", "Input Control file error");
+			GuiPackage.showErrorMessage(
+					"Control file is empty or contains invalid data - please enter a valid results file.",
+					"Input Control file error");
 			return;
 		}
-		String sInFileB = filePnlB.getFilename();		
+		String sInFileB = filePnlB.getFilename();
 		if (FileServices.isFilenameEmpty(sInFileB)) {
-			GuiPackage.showErrorMessage("Variation file name missing - please enter a filename.", "Input Variation file error");
+			GuiPackage.showErrorMessage("Variation file name missing - please enter a filename.",
+					"Input Variation file error");
 			return;
 		}
 		if (!(FileServices.isFileExist(sInFileB))) {
-			GuiPackage.showErrorMessage("Cannot find Variation file - please enter a valid filename.", "Input Variation file error");
+			GuiPackage.showErrorMessage("Cannot find Variation file - please enter a valid filename.",
+					"Input Variation file error");
 			return;
 		}
 		if (!(FileServices.isFileValid(sInFileB))) {
-			GuiPackage.showErrorMessage("Variation file is empty or contains invalid data - please enter a valid results file.", "Input Variation file error");
+			GuiPackage.showErrorMessage(
+					"Variation file is empty or contains invalid data - please enter a valid results file.",
+					"Input Variation file error");
 			return;
 		}
 
@@ -228,10 +240,12 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 		int iResult = CohenDEffectSizeLogic.calcCohenDEffectSize(sInFileA, sInFileB, fCohendAL);
 		switch (iResult) {
 		case -1:
-			GuiPackage.showErrorMessage("No samplers found in Control file - please check your file.", "Input Control file error");
+			GuiPackage.showErrorMessage("No samplers found in Control file - please check your file.",
+					"Input Control file error");
 			break;
 		case -2:
-			GuiPackage.showErrorMessage("No samplers found in Variation file - please check your file.", "Input Variation file error");
+			GuiPackage.showErrorMessage("No samplers found in Variation file - please check your file.",
+					"Input Variation file error");
 			break;
 		default:
 		}

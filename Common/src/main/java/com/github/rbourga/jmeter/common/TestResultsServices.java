@@ -19,7 +19,7 @@ import kg.apc.jmeter.JMeterPluginsUtils;
 public final class TestResultsServices {
 
 	// Config to save the results
-	private static SampleSaveConfiguration sampleSaveConfig = null;	// singleton instance
+	private static SampleSaveConfiguration sampleSaveConfig = null; // singleton instance
 
 	private static SampleSaveConfiguration getSampleSaveConfig() {
 		// Lazy initialization: create the instance if it doesn't exist yet

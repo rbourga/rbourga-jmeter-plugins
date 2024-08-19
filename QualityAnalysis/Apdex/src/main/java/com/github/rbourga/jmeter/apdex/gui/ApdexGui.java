@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package com.github.rbourga.jmeter.apdex.gui;
 
@@ -9,6 +9,7 @@ import java.awt.event.ActionListener;
 import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Collection;
+
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFormattedTextField;
@@ -26,7 +27,6 @@ import org.apache.jmeter.samplers.Clearable;
 import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jmeter.visualizers.gui.AbstractVisualizer;
-import org.apache.jorphan.gui.MinMaxLongRenderer;
 import org.apache.jorphan.gui.NumberRenderer;
 import org.apache.jorphan.gui.RendererUtils;
 
@@ -36,11 +36,12 @@ import com.github.rbourga.jmeter.common.FileServices;
 import kg.apc.jmeter.JMeterPluginsUtils;
 
 /**
- * 
+ *
  */
 public class ApdexGui extends AbstractVisualizer implements ActionListener, Clearable {
 	/**
-	 * This extends the AbstractVisualizer class because it provides the easiest means to handle SampleResults.
+	 * This extends the AbstractVisualizer class because it provides the easiest
+	 * means to handle SampleResults.
 	 */
 	private static final long serialVersionUID = 1L;
 	private static final String WIKIPAGE = "https://github.com/rbourga/rbourga-jmeter-plugins/wiki/APDEX-Score-Calculator";
@@ -108,8 +109,7 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 		JTable jTblStats = new JTable(ApdexLogic.getPwrTblMdelStats());
 		JMeterUtils.applyHiDPI(jTblStats);
 		jTblStats.setAutoCreateRowSorter(true);
-		RendererUtils.applyRenderers(jTblStats, new TableCellRenderer[] {
-				null, // Label
+		RendererUtils.applyRenderers(jTblStats, new TableCellRenderer[] { null, // Label
 				null, // # Samples
 //				new MinMaxLongRenderer("#0"), // Average
 				new NumberRenderer("#0.00%"), // Error %
@@ -141,10 +141,11 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 	}
 
 	/**
-	 * Section to override AbstractVisualizer's methods 
+	 * Section to override AbstractVisualizer's methods
 	 */
+	@Override
 	public Collection<String> getMenuCategories() {
-		//  Add this visualizer to the Non-Test Elements menu of the JMeter GUI
+		// Add this visualizer to the Non-Test Elements menu of the JMeter GUI
 		return Arrays.asList(MenuFactory.NON_TEST_ELEMENTS);
 	}
 
@@ -157,8 +158,8 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 		 */
 		return this.getClass().getSimpleName();
 	}
-	
-	 @Override
+
+	@Override
 	public String getStaticLabel() {
 		// return JMeterPluginsUtils.prefixLabel("Apdex Score Calculator");
 		return "Apdex Score Calculator";
@@ -166,8 +167,9 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 
 	@Override
 	public void clearData() {
-		/* Called when user clicks on "Clear" or "Clear All" buttons.
-		 * Clears data specific to this plugin
+		/*
+		 * Called when user clicks on "Clear" or "Clear All" buttons. Clears data
+		 * specific to this plugin
 		 */
 		ApdexLogic.getPwrTblMdelStats().clearData();
 		ApdexLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
@@ -176,7 +178,7 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 	@Override
 	public void actionPerformed(ActionEvent actionEvnt) {
 		String sActionCmd = actionEvnt.getActionCommand();
-		
+
 		switch (sActionCmd) {
 		case ACTION_CALCULATE:
 			actionCalc();
@@ -184,7 +186,8 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 
 		case ACTION_SAVE:
 			if (ApdexLogic.getPwrTblMdelStats().getRowCount() == 0) {
-				GuiPackage.showErrorMessage("Data table empty - please perform Calculate before.", "Save Table Data error");
+				GuiPackage.showErrorMessage("Data table empty - please perform Calculate before.",
+						"Save Table Data error");
 				return;
 			}
 			String csvFilename = saveDataModTblAsCsv();
@@ -193,7 +196,7 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 		default:
 		}
 	}
-	
+
 	private String saveDataModTblAsCsv() {
 		String sInFile = filePnl.getFilename();
 		return ApdexLogic.saveTableStatsAsCsv(sInFile);
@@ -203,14 +206,16 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 		// Parse target threshold
 		double fApdexTgtTholdSec = ((Number) jFtxtFldApdexTgtTholdSec.getValue()).doubleValue();
 		if (ApdexLogic.isTgtTHoldOutOfRange(fApdexTgtTholdSec)) {
-			GuiPackage.showErrorMessage("Please enter an Apdex target threshold equal to or greater than 0.1.", "Apdex Threshold Setting error");
+			GuiPackage.showErrorMessage("Please enter an Apdex target threshold equal to or greater than 0.1.",
+					"Apdex Threshold Setting error");
 			return;
 		}
 
 		// Parse Apdex score
 		double fApdexAQL = ((Number) jFTxtFldApdexAQL.getValue()).doubleValue();
 		if (ApdexLogic.isApdexMinScoreOutOfRange(fApdexAQL)) {
-			GuiPackage.showErrorMessage("Please enter a minimum Apdex score between 0 and 1.", "Apdex Score Setting error");
+			GuiPackage.showErrorMessage("Please enter a minimum Apdex score between 0 and 1.",
+					"Apdex Score Setting error");
 			return;
 		}
 
@@ -225,14 +230,17 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 			return;
 		}
 		if (!(FileServices.isFileValid(sInFile))) {
-			GuiPackage.showErrorMessage("Input file is empty or contains invalid data - please enter a valid results file.", "Input file error");
+			GuiPackage.showErrorMessage(
+					"Input file is empty or contains invalid data - please enter a valid results file.",
+					"Input file error");
 			return;
 		}
 
 		// Now, process the data
 		int iResult = ApdexLogic.computeApdexScore(sInFile, fApdexTgtTholdSec, fApdexAQL);
 		if (iResult == -1) {
-			GuiPackage.showErrorMessage("No samplers found in results file - please check your file.", "Input file error");
+			GuiPackage.showErrorMessage("No samplers found in results file - please check your file.",
+					"Input file error");
 		}
 		// Repaint the table
 		ApdexLogic.getPwrTblMdelStats().fireTableDataChanged();

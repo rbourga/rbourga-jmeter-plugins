@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package com.github.rbourga.jmeter.apdex.logic;
 
@@ -17,40 +17,34 @@ import org.apache.jmeter.samplers.SampleSaveConfiguration;
 import org.apache.jmeter.util.JMeterUtils;
 
 import com.github.rbourga.jmeter.common.FileServices;
-import com.github.rbourga.jmeter.common.MathMoments;
 
 public final class ApdexLogic {
 
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
 	private static PowerTableModel pwrTblMdlStats = new PowerTableModel(
-			new String[] {
-					JMeterUtils.getResString("sampler label"), // Label
+			new String[] { JMeterUtils.getResString("sampler label"), // Label
 					JMeterUtils.getResString("aggregate_report_count"), // # Samples
-/*
- * Hiding Average as it should be calculated only on successful results and without outliers
- * whereas Apdex requires the full set of results.
- */
+					/*
+					 * Hiding Average as it should be calculated only on successful results and
+					 * without outliers whereas Apdex requires the full set of results.
+					 */
 //					JMeterUtils.getResString("average"), // Average
 					JMeterUtils.getResString("aggregate_report_error%"), // # Error %
-					"Apdex Value",
-					"Apdex Target (s)", // Target threshold
-					"Apdex Rating",
-					"Small Group", // true if number of samples < 100
+					"Apdex Value", "Apdex Target (s)", // Target threshold
+					"Apdex Rating", "Small Group", // true if number of samples < 100
 					"Failed" // true if value less than the specified threshold
-			}, new Class[] {
-					String.class,	// Label
-					Integer.class,	// # Samples
+			}, new Class[] { String.class, // Label
+					Integer.class, // # Samples
 //					Double.class,	// Average
-					Double.class,	// # Error %
-					Double.class,	// Apdex Value
-					Double.class,	// Apdex Target
-					String.class,	// Apdex Rating
-					String.class,	// Small Group
-					String.class	// Failed
-					});
-	private static int PASSFAIL_TEST_COLNBR = 7;	// Position of Failed column in the table
-
+					Double.class, // # Error %
+					Double.class, // Apdex Value
+					Double.class, // Apdex Target
+					String.class, // Apdex Rating
+					String.class, // Small Group
+					String.class // Failed
+			});
+	private static int PASSFAIL_TEST_COLNBR = 7; // Position of Failed column in the table
 
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
@@ -58,15 +52,15 @@ public final class ApdexLogic {
 
 	public static int computeApdexScore(String sFilepath, double dApdexTgtTholdSec, double dApdexAQL) {
 		int iTotRcd;
-		long lSatisfiedCount, lToleratingCount;
-		BigDecimal bdApdexScore, bdApdexScoreRnd, bdErrPct , bdErrPctRnd;
+		long lSatisfiedCount, lToleratingCount, lFailedCount;
+		BigDecimal bdApdexScore, bdApdexScoreRnd, bdErrPct, bdErrPctRnd;
 		BigDecimal bdApdexAQL = new BigDecimal(dApdexAQL);
 		String sApdexRating, sIsSmallGroup, sIsFailed;
 		List<CSVRecord> aRcd;
-		MathMoments mathMoments;
-		Stream<CSVRecord> oPassedSamples, oSatisfiedSamples, oToleratingSamples;
+		Stream<CSVRecord> oPassedSamples, oSatisfiedSamples, oToleratingSamples, oFailedSamples;
 
-		// Load the data after getting the delimiter separator from current JMeter properties
+		// Load the data after getting the delimiter separator from current JMeter
+		// properties
 		char cDelim = SampleSaveConfiguration.staticConfig().getDelimiter().charAt(0);
 		Map<String, List<CSVRecord>> rcdHashMap = FileServices.loadSamplesIntoHashMap(sFilepath, cDelim);
 		if (rcdHashMap.isEmpty()) {
@@ -88,8 +82,6 @@ public final class ApdexLogic {
 			aRcd = tmSortedRcd.get(sLbl);
 			iTotRcd = aRcd.size();
 
-			// Get some stats for this set of samples
-			mathMoments = MathMoments.crteMomentsFromRecordsList(aRcd);
 			/*
 			 * As per Apdex specs, all server failures must be counted as frustrated
 			 * regardless of their time. So we must calculate Apdex only on the successful
@@ -97,22 +89,28 @@ public final class ApdexLogic {
 			 */
 			oPassedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("true"));
 			// Satisfied list of samples
-			oSatisfiedSamples = oPassedSamples.filter(rcd -> Long.parseLong(rcd.get("elapsed")) <= lApdexTgtTholdMS); // 0 to T
-			lSatisfiedCount  = oSatisfiedSamples.count();
-			// Tolerating list of samples: reset the successful stream as a stream can only be used once
-			oPassedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("true"));			
-			oToleratingSamples = oPassedSamples.filter(rcd -> ((Long.parseLong(rcd.get("elapsed")) > lApdexTgtTholdMS) && ((Long.parseLong(rcd.get("elapsed")) < lApdexTolTholdMS)))); // T to F
+			oSatisfiedSamples = oPassedSamples.filter(rcd -> Long.parseLong(rcd.get("elapsed")) <= lApdexTgtTholdMS); // 0
+																														// to
+																														// T
+			lSatisfiedCount = oSatisfiedSamples.count();
+			// Tolerating list of samples: reset the successful stream as a stream can only
+			// be used once
+			oPassedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("true"));
+			oToleratingSamples = oPassedSamples.filter(rcd -> ((Long.parseLong(rcd.get("elapsed")) > lApdexTgtTholdMS)
+					&& ((Long.parseLong(rcd.get("elapsed")) < lApdexTolTholdMS)))); // T to F
 			lToleratingCount = oToleratingSamples.count();
 
 			// Now compute the Apdex value
-			bdApdexScore = new BigDecimal((double) (lSatisfiedCount + (lToleratingCount / 2.0)) / iTotRcd);
+			bdApdexScore = new BigDecimal((lSatisfiedCount + (lToleratingCount / 2.0)) / iTotRcd);
 			// Round to 2 decimal places as per Apdex specs
 			bdApdexScoreRnd = bdApdexScore.setScale(2, RoundingMode.HALF_UP);
 			// Set rating as per Apdex specs
 			sApdexRating = setApdexRating(bdApdexScoreRnd);
 
 			// ErrPct formatting: round to 4 decimal places
-			bdErrPct = new BigDecimal(mathMoments.getErrorPercentage());
+			oFailedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("false"));
+			lFailedCount = oFailedSamples.count();
+			bdErrPct = new BigDecimal((double) (lFailedCount / iTotRcd));
 			bdErrPctRnd = bdErrPct.setScale(4, RoundingMode.HALF_UP);
 
 			// Finally update the statistics table
@@ -125,16 +123,15 @@ public final class ApdexLogic {
 				sIsFailed = "true";
 				iFailedLblCnt++;
 			}
-			Object[] oArrayRowData = {
-					sLbl,		// Label
-					iTotRcd,	// # Samples
+			Object[] oArrayRowData = { sLbl, // Label
+					iTotRcd, // # Samples
 //					Long.valueOf((long) mathMoments.getMean()),	// Average
-					bdErrPctRnd.doubleValue(),	//# Error %
-                    bdApdexScoreRnd.doubleValue(),	//Apdex Value
-                    dApdexTgtTholdSec,	// Apdex Target
-                    sApdexRating,    // Apdex Rating
-                    sIsSmallGroup,    // shows a tick if number of samples < 100
-					sIsFailed };	// shows a tick if value less than the specified threshold
+					bdErrPctRnd.doubleValue(), // # Error %
+					bdApdexScoreRnd.doubleValue(), // Apdex Value
+					dApdexTgtTholdSec, // Apdex Target
+					sApdexRating, // Apdex Rating
+					sIsSmallGroup, // shows a tick if number of samples < 100
+					sIsFailed }; // shows a tick if value less than the specified threshold
 
 			pwrTblMdlStats.addRow(oArrayRowData);
 		}
@@ -162,14 +159,16 @@ public final class ApdexLogic {
 	private static String setApdexRating(BigDecimal bdScore) {
 		// Sets the rating as per Apdex specs
 		String sRating = "Unacceptable"; // grey
-		if (bdScore.doubleValue() >= 0.94)
+		if (bdScore.doubleValue() >= 0.94) {
 			sRating = "Excellent"; // blue
-		else if (bdScore.doubleValue() >= 0.85)
+		} else if (bdScore.doubleValue() >= 0.85) {
 			sRating = "Good"; // green
-		else if (bdScore.doubleValue() >= 0.70)
+		} else if (bdScore.doubleValue() >= 0.70) {
 			sRating = "Fair"; // yellow
-		else if (bdScore.doubleValue() >= 0.50)
+		} else if (bdScore.doubleValue() >= 0.50)
+		 {
 			sRating = "Poor"; // red
+		}
 		return sRating;
 	}
 

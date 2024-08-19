@@ -15,22 +15,23 @@ import kg.apc.cmd.UniversalRunner;
 import kg.apc.jmeter.JMeterPluginsUtils;
 import kg.apc.logging.LoggingUtils;
 
-public class ResultsCompareTool extends AbstractCMDTool{
+public class ResultsCompareTool extends AbstractCMDTool {
 
 	public ResultsCompareTool() {
-        super();
-        JMeterPluginsUtils.prepareJMeterEnv(UniversalRunner.getJARLocation());
-        LoggingUtils.addLoggingConfig();
+		super();
+		JMeterPluginsUtils.prepareJMeterEnv(UniversalRunner.getJARLocation());
+		LoggingUtils.addLoggingConfig();
 	}
 
 	@Override
 	protected int processParams(ListIterator args) throws UnsupportedOperationException, IllegalArgumentException {
 		/**
-		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool ResultsCompare"
+		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool
+		 * ResultsCompare"
 		 */
 		String sCtrlFile = null;
 		String sVarFile = null;
-		String sCohensdAL = "1.2";	// 1.2 max acceptable limit by default
+		String sCohensdAL = "1.2"; // 1.2 max acceptable limit by default
 
 		if (!args.hasNext()) {
 			showHelp(System.out);
@@ -77,7 +78,7 @@ public class ResultsCompareTool extends AbstractCMDTool{
 		}
 		double fCohensdAL = Double.parseDouble(sCohensdAL);
 		if (CohenDEffectSizeLogic.isCohendALOutOfRange(fCohensdAL)) {
-			throw new IllegalArgumentException("Cohen's d acceptable limit value needs to be greater or equal to 0.");			
+			throw new IllegalArgumentException("Cohen's d acceptable limit value needs to be greater or equal to 0.");
 		}
 
 		// Do the job
@@ -100,11 +101,8 @@ public class ResultsCompareTool extends AbstractCMDTool{
 
 	@Override
 	protected void showHelp(PrintStream os) {
-		os.println("Options for tool 'ResultsCompare':"
-				+ "--ctrl-file <controlFilename> "
-				+ "--var-file <variationFilename> "
-				+ "["
-				+ "--cohensd-alim <Cohen's d acceptable limit value to pass>"
+		os.println("Options for tool 'ResultsCompare':" + "--ctrl-file <controlFilename> "
+				+ "--var-file <variationFilename> " + "[" + "--cohensd-alim <Cohen's d acceptable limit value to pass>"
 				+ "]");
 	}
 }

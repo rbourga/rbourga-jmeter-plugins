@@ -15,12 +15,12 @@ import kg.apc.cmd.UniversalRunner;
 import kg.apc.jmeter.JMeterPluginsUtils;
 import kg.apc.logging.LoggingUtils;
 
-public class ApdexTool extends AbstractCMDTool{
+public class ApdexTool extends AbstractCMDTool {
 
 	public ApdexTool() {
-        super();
-        JMeterPluginsUtils.prepareJMeterEnv(UniversalRunner.getJARLocation());
-        LoggingUtils.addLoggingConfig();
+		super();
+		JMeterPluginsUtils.prepareJMeterEnv(UniversalRunner.getJARLocation());
+		LoggingUtils.addLoggingConfig();
 	}
 
 	@Override
@@ -29,8 +29,8 @@ public class ApdexTool extends AbstractCMDTool{
 		 * Called by the Universal Command Line Tool runner as in "cmdrunner --tool Apdex"
 		 */
 		String sInFile = null;
-		String sApdexTgtTholdSec = "4";	// 4s by default
-		String sApdexAQL = "0.85";	// good by default
+		String sApdexTgtTholdSec = "4"; // 4s by default
+		String sApdexAQL = "0.85"; // good by default
 
 		if (!args.hasNext()) {
 			showHelp(System.out);
@@ -71,7 +71,8 @@ public class ApdexTool extends AbstractCMDTool{
 		}
 		double fApdexTgtTholdSec = Double.parseDouble(sApdexTgtTholdSec);
 		if (ApdexLogic.isTgtTHoldOutOfRange(fApdexTgtTholdSec)) {
-			throw new IllegalArgumentException("Apdex satisfied threshold value T needs to be greater or equal to 0.1.");			
+			throw new IllegalArgumentException(
+					"Apdex satisfied threshold value T needs to be greater or equal to 0.1.");
 		}
 		// Check apdex-min-score parameter
 		if (!(NumberUtils.isCreatable(sApdexAQL))) {
@@ -79,7 +80,7 @@ public class ApdexTool extends AbstractCMDTool{
 		}
 		double fApdexAQL = Double.parseDouble(sApdexAQL);
 		if (ApdexLogic.isApdexMinScoreOutOfRange(fApdexAQL)) {
-			throw new IllegalArgumentException("Apdex Acceptable Quality Level value needs to be between 0 and 1.");			
+			throw new IllegalArgumentException("Apdex Acceptable Quality Level value needs to be between 0 and 1.");
 		}
 
 		// Do the job
@@ -96,10 +97,8 @@ public class ApdexTool extends AbstractCMDTool{
 
 	@Override
 	protected void showHelp(PrintStream os) {
-		os.println("Options for tool 'Apdex': --input-file <filenameIn> "
-				+ "["
+		os.println("Options for tool 'Apdex': --input-file <filenameIn> " + "["
 				+ "--apdex-tgt-thold-secs <satisified treshold value in secs (greater than 0.1)> "
-				+ "--apdex-aql <min Apdex score to pass (between 0 and 1)> "
-				+ "]");				
+				+ "--apdex-aql <min Apdex score to pass (between 0 and 1)> " + "]");
 	}
 }

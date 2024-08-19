@@ -50,7 +50,7 @@ public final class FileServices {
 
 	public static Map<String, List<CSVRecord>> loadSamplesIntoHashMap(String sFilePath, char cDelim) {
 		// Store the samples and group them by their labels in separate lists
-		HashMap<String, List<CSVRecord>> rcdHashMap = new HashMap<String, List<CSVRecord>>();
+		HashMap<String, List<CSVRecord>> rcdHashMap = new HashMap<>();
 		CSVFormat csvFmt;
 
 		if (cDelim == ',') {
@@ -66,7 +66,7 @@ public final class FileServices {
 				String sLabel = rcd.get("label");
 				if (!rcdHashMap.containsKey(sLabel)) {
 					// New label
-					rcdHashMap.put(sLabel, new ArrayList<CSVRecord>());
+					rcdHashMap.put(sLabel, new ArrayList<>());
 				}
 				rcdHashMap.get(sLabel).add(rcd);
 			}
@@ -89,7 +89,7 @@ public final class FileServices {
 		}
 
 		try (FileWriter fileWriter = new FileWriter(sFilePath);
-			CSVPrinter csvPrinter = new CSVPrinter(fileWriter, csvFmt)) {
+				CSVPrinter csvPrinter = new CSVPrinter(fileWriter, csvFmt)) {
 
 			// Write the header to the file
 			csvPrinter.printRecord(listCSVRecs.get(0).getParser().getHeaderNames());
@@ -128,11 +128,11 @@ public final class FileServices {
 		/**
 		 * This method saves the data from a table model into an HTML file. Background
 		 * color of the rows depend on iBoolClnNbr and will be set as follow:
-		 * -1: default color,
-		 * any positive number: will check for value in the column number
-		 * and if:
-		 * true: orange
-		 * false: green
+		 *  -1: default color
+		 *  any positive number: will check for value in the column number and if:
+		 *   true: orange
+		 *   false: green
+		 *   na: orange
 		 */
 		String sColName, sHtmlOut, sRoundedPct;
 		double dPctValue;

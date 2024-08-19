@@ -11,9 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.math3.stat.StatUtils;
 import org.apache.jmeter.gui.util.PowerTableModel;
 import org.apache.jmeter.samplers.SampleSaveConfiguration;
 import org.apache.jmeter.util.JMeterUtils;
@@ -28,8 +28,7 @@ public final class TukeyOutlierDetectorLogic {
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
 	private static PowerTableModel pwrTblMdlStats = new PowerTableModel(
-			new String[] {
-					JMeterUtils.getResString("sampler label"), // Label
+			new String[] { JMeterUtils.getResString("sampler label"), // Label
 					JMeterUtils.getResString("aggregate_report_count"), // # Samples
 					JMeterUtils.getResString("average"), // Average
 					"Upper Fence",
@@ -37,8 +36,7 @@ public final class TukeyOutlierDetectorLogic {
 					"Removed %", // percentage of samples that have been discarded
 					"Small Group", // true if remaining number of samples < 100
 					"Failed" // true if value greater than the specified threshold
-			}, new Class[] {
-					String.class, // Label
+			}, new Class[] { String.class, // Label
 					Integer.class, // # Samples
 					Double.class, // Average
 					Double.class, // Upper Fence
@@ -47,7 +45,7 @@ public final class TukeyOutlierDetectorLogic {
 					String.class, // Small Group
 					String.class // Failed
 			});
-	private static int PASSFAIL_TEST_COLNBR = 7;	// Position of Failed column in the table
+	private static int PASSFAIL_TEST_COLNBR = 7; // Position of Failed column in the table
 
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
@@ -67,7 +65,8 @@ public final class TukeyOutlierDetectorLogic {
 		double fK = fTukeyK;
 		BigDecimal bdMaxRemPct = new BigDecimal(fMaxRemPct);
 
-		// Load the data after getting the delimiter separator from current JMeter properties
+		// Load the data after getting the delimiter separator from current JMeter
+		// properties
 		char cDelim = SampleSaveConfiguration.staticConfig().getDelimiter().charAt(0);
 		Map<String, List<CSVRecord>> rcdHashMap = FileServices.loadSamplesIntoHashMap(sFilepath, cDelim);
 		if (rcdHashMap.isEmpty()) {
@@ -87,13 +86,12 @@ public final class TukeyOutlierDetectorLogic {
 			fUpFenceMin = Double.MAX_VALUE;
 
 			// We focus on successful samplers as they are the main interest
-			aLblRcdPassed = aLblRcd.stream()
-					.filter(rcd -> rcd.get("success").equals("true"))
+			aLblRcdPassed = aLblRcd.stream().filter(rcd -> rcd.get("success").equals("true"))
 					.collect(Collectors.toList());
 			iInitPassedLblCnt = aLblRcdPassed.size();
 
-			// Get some stats for this set of samples
-			mathMoments = MathMoments.crteMomentsFromRecordsList(aLblRcdPassed);
+			// Get initial average value
+			double dAvg = MathMoments.crteMomentsFromRecordsList(aLblRcdPassed).getMean();
 
 			// Only look for outliers if there are at least four items to compare
 			if (iInitPassedLblCnt > 3) {
@@ -110,8 +108,9 @@ public final class TukeyOutlierDetectorLogic {
 				 * have to iterate until no extreme values are left.
 				 */
 				do {
-					// Get the upper fence
-					fUpFence = getUpprFence(aLblRcdPassed, fK);
+					// Update the stats on the series and get the new upper fence
+					mathMoments = MathMoments.crteMomentsFromRecordsList(aLblRcdPassed);
+					fUpFence = getUpprFence(mathMoments, fK);
 					// Save the most severe limit for the report
 					fUpFenceMin = Math.min(fUpFence, fUpFenceMin);
 					// Now remove all samples that are higher than the upper fence using Java's
@@ -146,7 +145,8 @@ public final class TukeyOutlierDetectorLogic {
 				sIsSmallGroup = "true";
 			}
 			iUpprOutlierCnt = iInitPassedLblCnt - aLblRcdPassed.size();
-			BigDecimal bdUpprOutlierPct = (iInitPassedLblCnt == 0) ? new BigDecimal(0) : new BigDecimal((double) iUpprOutlierCnt / (double) iInitPassedLblCnt);
+			BigDecimal bdUpprOutlierPct = (iInitPassedLblCnt == 0) ? new BigDecimal(0)
+					: new BigDecimal((double) iUpprOutlierCnt / (double) iInitPassedLblCnt);
 			// Round % to 4 decimal places
 			BigDecimal bdUpprOutlierPctRnd = bdUpprOutlierPct.setScale(4, RoundingMode.HALF_UP);
 			sIsFailed = "false";
@@ -155,10 +155,9 @@ public final class TukeyOutlierDetectorLogic {
 				iFailedLblCnt++;
 			}
 			// Update the statistics table
-			Object[] oArrayRowData = {
-					sLbl, // Label
+			Object[] oArrayRowData = { sLbl, // Label
 					iInitPassedLblCnt, // # Samples
-					Long.valueOf((long) mathMoments.getMean()), // Average
+					Long.valueOf((long) dAvg), // Average
 					fUpFenceMin, // Upper Fence
 					iUpprOutlierCnt, // # Removed
 					bdUpprOutlierPctRnd.doubleValue(), // Removed %
@@ -182,25 +181,11 @@ public final class TukeyOutlierDetectorLogic {
 		return iFailedLblCnt;
 	}
 
-	private static double getUpprFence(List<CSVRecord> aRcd, double fK) {
-		// Uses StatUtils to get the percentiles which will give us the UpperFence.
-
-		// Extract the elapsed values into a list
-		List<Double> listElapsed = new ArrayList<Double>();
-		for (CSVRecord rcd : aRcd) {
-			double dElapsed = Double.parseDouble(rcd.get("elapsed"));
-			listElapsed.add(dElapsed);
-		}
-		// Convert the list of elapsed to a double array
-		double[] aElapsed = listElapsed.stream().mapToDouble(Double::doubleValue).toArray();
-
-		// Get Q1 and Q3
-		double dQ1 = StatUtils.percentile(aElapsed, 25); // first quartile
-		double dQ3 = StatUtils.percentile(aElapsed, 75); // third quartile
+	private static double getUpprFence(MathMoments mathMoments, double fK) {
 
 		// Return the upper fence value to 2 decimal places
-		double fInterQuartileRange = dQ3 - dQ1;
-		double fUpperFence = dQ3 + (fK * fInterQuartileRange);
+		double fInterQuartileRange = mathMoments.getQ3() - mathMoments.getQ1();
+		double fUpperFence = mathMoments.getQ3() + (fK * fInterQuartileRange);
 		String sUpperFencerounded = df2Decimals.format(fUpperFence);
 		// Convert value back to double
 		fUpperFence = Double.parseDouble(sUpperFencerounded);

@@ -10,6 +10,7 @@ import java.awt.event.ActionListener;
 import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Collection;
+
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -43,7 +44,8 @@ import kg.apc.jmeter.JMeterPluginsUtils;
  */
 public class TukeyOutlierDetectorGui extends AbstractVisualizer implements ActionListener, Clearable {
 	/**
-	 * This extends the AbstractVisualizer class because it provides the easiest means to handle SampleResults.
+	 * This extends the AbstractVisualizer class because it provides the easiest
+	 * means to handle SampleResults.
 	 */
 	private static final long serialVersionUID = 1L;
 	private static final String WIKIPAGE = "https://github.com/rbourga/rbourga-jmeter-plugins/wiki/Right-Tail-Outlier-Detection";
@@ -113,8 +115,7 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 		JTable jTblStats = new JTable(TukeyOutlierDetectorLogic.getPwrTblMdelStats());
 		JMeterUtils.applyHiDPI(jTblStats);
 		jTblStats.setAutoCreateRowSorter(true);
-		RendererUtils.applyRenderers(jTblStats, new TableCellRenderer[] {
-				null, // Label
+		RendererUtils.applyRenderers(jTblStats, new TableCellRenderer[] { null, // Label
 				null, // # Samples
 				new MinMaxLongRenderer("#0"), // Average
 				null, // Upper Fence
@@ -147,8 +148,9 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 	/**
 	 * Section to override AbstractVisualizer's methods
 	 */
+	@Override
 	public Collection<String> getMenuCategories() {
-		//  Add this visualizer to the Non-Test Elements menu of the JMeter GUI
+		// Add this visualizer to the Non-Test Elements menu of the JMeter GUI
 		return Arrays.asList(MenuFactory.NON_TEST_ELEMENTS);
 	}
 
@@ -162,15 +164,16 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 		return this.getClass().getSimpleName();
 	}
 
-	 @Override
+	@Override
 	public String getStaticLabel() {
 		return "Upper Outlier Removal";
 	}
 
 	@Override
 	public void clearData() {
-		/* Called when user clicks on "Clear" or "Clear All" buttons.
-		 * Clears data specific to this plugin
+		/*
+		 * Called when user clicks on "Clear" or "Clear All" buttons. Clears data
+		 * specific to this plugin
 		 */
 		TukeyOutlierDetectorLogic.getPwrTblMdelStats().clearData();
 		TukeyOutlierDetectorLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
@@ -187,7 +190,8 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 
 		case ACTION_SAVE:
 			if (TukeyOutlierDetectorLogic.getPwrTblMdelStats().getRowCount() == 0) {
-				GuiPackage.showErrorMessage("Data table empty - please perform Detect before.", "Save Table Data error");
+				GuiPackage.showErrorMessage("Data table empty - please perform Detect before.",
+						"Save Table Data error");
 				return;
 			}
 			String csvFilename = saveDataModTblAsCsv();
@@ -206,7 +210,8 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 		// Parse trim % value
 		double fRemALPct = ((Number) jFTxtFldRemAL.getValue()).doubleValue();
 		if (TukeyOutlierDetectorLogic.isTrimPctOutOfRange(fRemALPct)) {
-			GuiPackage.showErrorMessage("Please enter a maximum removal percentage value >= 0.", "Max Removal Setting error");
+			GuiPackage.showErrorMessage("Please enter a maximum removal percentage value >= 0.",
+					"Max Removal Setting error");
 			return;
 		}
 
@@ -221,12 +226,14 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 			return;
 		}
 		if (!(FileServices.isFileValid(sInFile))) {
-			GuiPackage.showErrorMessage("Input file is empty or contains invalid data - please enter a valid results file.", "Input file error");
+			GuiPackage.showErrorMessage(
+					"Input file is empty or contains invalid data - please enter a valid results file.",
+					"Input file error");
 			return;
 		}
 
 		// Set Tukey's option that was selected
-		double fTukeyK = 0.0;	// We use 0 to indicate Carling's option was selected
+		double fTukeyK = 0.0; // We use 0 to indicate Carling's option was selected
 		if (jRadioBtn_1_5.isSelected()) {
 			fTukeyK = 1.5;
 		} else if (jRadioBtn_3.isSelected()) {
@@ -236,7 +243,8 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 		// Now, process the data
 		int iResult = TukeyOutlierDetectorLogic.RemoveUpper(sInFile, fTukeyK, fRemALPct);
 		if (iResult == -1) {
-			GuiPackage.showErrorMessage("No samplers found in results file - please check your file.", "Input file error");
+			GuiPackage.showErrorMessage("No samplers found in results file - please check your file.",
+					"Input file error");
 		}
 		// Repaint the table
 		TukeyOutlierDetectorLogic.getPwrTblMdelStats().fireTableDataChanged();

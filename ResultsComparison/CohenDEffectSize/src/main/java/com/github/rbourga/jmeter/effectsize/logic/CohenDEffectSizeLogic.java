@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package com.github.rbourga.jmeter.effectsize.logic;
 
@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jmeter.gui.util.PowerTableModel;
@@ -47,24 +48,31 @@ public final class CohenDEffectSizeLogic {
 	private int getCountA() {
 		return iCountA;
 	}
+
 	private int getCountB() {
 		return iCountB;
 	}
+
 	private double getMeanA() {
 		return fMeanA;
 	}
+
 	private double getMeanB() {
 		return fMeanB;
 	}
+
 	private double getVarianceA() {
 		return fVarianceA;
 	}
+
 	private double getVarianceB() {
 		return fVarianceB;
 	}
+
 	private BigDecimal getCohenD() {
 		return bdCohenD;
 	}
+
 	private String getDiffRating() {
 		return sDiffRating;
 	}
@@ -72,9 +80,11 @@ public final class CohenDEffectSizeLogic {
 	private void setCountB(int iCount) {
 		this.iCountB = iCount;
 	}
+
 	private void setMeanB(double dMean) {
 		this.fMeanB = dMean;
 	}
+
 	private void setVarianceB(double dVariance) {
 		this.fVarianceB = dVariance;
 	}
@@ -83,7 +93,7 @@ public final class CohenDEffectSizeLogic {
 		// BigDecimal bdCohenDNotRounded = new BigDecimal((double) Math.abs(fCohenD));
 		BigDecimal bdCohenDNotRnded = new BigDecimal(dValue);
 		// Round to 2 decimal places as per specs
-		this.bdCohenD = bdCohenDNotRnded.setScale(2, RoundingMode.HALF_UP);		
+		this.bdCohenD = bdCohenDNotRnded.setScale(2, RoundingMode.HALF_UP);
 	}
 
 	private void setDiffRating(double dValue) {
@@ -98,36 +108,39 @@ public final class CohenDEffectSizeLogic {
 		// 2. Get magnitude of movement according to Sawilowsky's rule of thumb
 		double fAbsValue = Math.abs(dValue);
 		String sMag = "Similar";
-		if (fAbsValue >= 2.0) sMag = "Huge";
-		else if (fAbsValue >= 1.20) sMag = "Very large";
-		else if (fAbsValue >= 0.80) sMag = "Large";
-		else if (fAbsValue >= 0.50) sMag = "Medium";
-		else if (fAbsValue >= 0.02) sMag = "Small";
-		else if (fAbsValue >= 0.01) sMag = "Very small";
-		else if (fAbsValue > 0.0) sMag = "Negligeable";
-		
+		if (fAbsValue >= 2.0) {
+			sMag = "Huge";
+		} else if (fAbsValue >= 1.20) {
+			sMag = "Very large";
+		} else if (fAbsValue >= 0.80) {
+			sMag = "Large";
+		} else if (fAbsValue >= 0.50) {
+			sMag = "Medium";
+		} else if (fAbsValue >= 0.02) {
+			sMag = "Small";
+		} else if (fAbsValue >= 0.01) {
+			sMag = "Very small";
+		} else if (fAbsValue > 0.0) {
+			sMag = "Negligeable";
+		}
+
 		this.sDiffRating = sMag + " " + sDir;
 	}
 
 	// Variables to store all the moments
-	private static ArrayList<Double> alAveragesA = new ArrayList<Double>(); // Used to store all averages of A
-	private static ArrayList<Double> alAveragesB = new ArrayList<Double>(); // Used to store all averages of B
-	private static HashMap<String, CohenDEffectSizeLogic> hmCohendResults = new HashMap<String, CohenDEffectSizeLogic>();
+	private static ArrayList<Double> alAveragesA = new ArrayList<>(); // Used to store all averages of A
+	private static ArrayList<Double> alAveragesB = new ArrayList<>(); // Used to store all averages of B
+	private static HashMap<String, CohenDEffectSizeLogic> hmCohendResults = new HashMap<>();
 
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
 	private static PowerTableModel pwrTblMdlStats = new PowerTableModel(
-			new String[] {
-					JMeterUtils.getResString("sampler label"), // Label
-					"# Samples A",
-					"# Samples B",
-					"Average A", // Averages
-					"Average B",
-					"Cohen's d", // d
+			new String[] { JMeterUtils.getResString("sampler label"), // Label
+					"# Samples A", "# Samples B", "Average A", // Averages
+					"Average B", "Cohen's d", // d
 					"Diff Rating", // Descriptor
 					"Failed" // true if value more than the specified threshold
-			}, new Class[] {
-					String.class, // Label
+			}, new Class[] { String.class, // Label
 					Integer.class, // # Samples A
 					Integer.class, // # Samples B
 					Double.class, // Average A
@@ -136,8 +149,8 @@ public final class CohenDEffectSizeLogic {
 					String.class, // Diff Rating
 					String.class // Failed
 			});
-	private static int PASSFAIL_TEST_COLNBR = 7;	// Position of Failed column in the table
-	
+	private static int PASSFAIL_TEST_COLNBR = 7; // Position of Failed column in the table
+
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
 	}
@@ -149,7 +162,8 @@ public final class CohenDEffectSizeLogic {
 		List<CSVRecord> aRcd;
 		MathMoments mathMoments;
 
-		// Load the data after getting the delimiter separator from current JMeter properties
+		// Load the data after getting the delimiter separator from current JMeter
+		// properties
 		char cDelim = SampleSaveConfiguration.staticConfig().getDelimiter().charAt(0);
 		Map<String, List<CSVRecord>> rcdHashMapA = FileServices.loadSamplesIntoHashMap(sFilepathA, cDelim);
 		if (rcdHashMapA.isEmpty()) {
@@ -167,10 +181,9 @@ public final class CohenDEffectSizeLogic {
 		pwrTblMdlStats.clearData();
 
 		/*
-		 * Processing of the data is done in multiple steps:
-		 * 1. Calculate the moments for the Control samplers A.
-		 * 2. Calculate the moments for the Variation samplers B.
-		 * 3. Calculate Cohen's d between A and B
+		 * Processing of the data is done in multiple steps: 1. Calculate the moments
+		 * for the Control samplers A. 2. Calculate the moments for the Variation
+		 * samplers B. 3. Calculate Cohen's d between A and B
 		 */
 		// 1. Loop through the Labels in the dataset A
 		for (String sLbl : rcdHashMapA.keySet()) {
@@ -204,7 +217,7 @@ public final class CohenDEffectSizeLogic {
 			// Save some values for later analysis
 			// Is this Sample in the Control file?
 			if (hmCohendResults.containsKey(sLbl)) {
-				// Yes: update the Stats with B values			
+				// Yes: update the Stats with B values
 				hmCohendResults.get(sLbl).setCountB(iTotRcd);
 				hmCohendResults.get(sLbl).setMeanB(mathMoments.getMean());
 				hmCohendResults.get(sLbl).setVarianceB(mathMoments.getVariance());
@@ -218,9 +231,10 @@ public final class CohenDEffectSizeLogic {
 				hmCohendResults.put(sLbl, oCohenDEffectSizeLogic);
 			}
 		}
-		
-		// 3. Now calculate Cohen's d values for all keys and set the difference between the means
-		for (String sLbl : hmCohendResults.keySet() ) {
+
+		// 3. Now calculate Cohen's d values for all keys and set the difference between
+		// the means
+		for (String sLbl : hmCohendResults.keySet()) {
 			// Only calculate if more than 2 samplers on each side
 			iCntA = hmCohendResults.get(sLbl).getCountA();
 			iCntB = hmCohendResults.get(sLbl).getCountB();
@@ -242,28 +256,24 @@ public final class CohenDEffectSizeLogic {
 		// 4. Update the statistics table for the UI in a natural order
 		TreeMap<String, CohenDEffectSizeLogic> tmResultsSorted = new TreeMap<>(hmCohendResults);
 		int iFailedLblCnt = 0;
-		for (String sLbl : tmResultsSorted.keySet() ) {
-			
+		for (String sLbl : tmResultsSorted.keySet()) {
+
 			if (tmResultsSorted.get(sLbl).getDiffRating() == RATING_NOTAPPLICABLE) {
-				sIsFailed = "na";				
+				sIsFailed = "na";
 			} else {
 				sIsFailed = "false";
 				dCohend = tmResultsSorted.get(sLbl).getCohenD().doubleValue();
-				if (dCohend >=  dCohendAL) {
+				if (dCohend >= dCohendAL) {
 					sIsFailed = "true";
 					iFailedLblCnt++;
-				}				
+				}
 			}
 
-			Object[] oArrayRowData = {
-					sLbl,
-					tmResultsSorted.get(sLbl).getCountA(),
-					tmResultsSorted.get(sLbl).getCountB(),
-					Long.valueOf((long)tmResultsSorted.get(sLbl).getMeanA()),
-					Long.valueOf((long)tmResultsSorted.get(sLbl).getMeanB()),
+			Object[] oArrayRowData = { sLbl, tmResultsSorted.get(sLbl).getCountA(),
+					tmResultsSorted.get(sLbl).getCountB(), Long.valueOf((long) tmResultsSorted.get(sLbl).getMeanA()),
+					Long.valueOf((long) tmResultsSorted.get(sLbl).getMeanB()),
 					Math.abs(tmResultsSorted.get(sLbl).getCohenD().doubleValue()),
-					tmResultsSorted.get(sLbl).getDiffRating(),
-					sIsFailed};
+					tmResultsSorted.get(sLbl).getDiffRating(), sIsFailed };
 			pwrTblMdlStats.addRow(oArrayRowData);
 		}
 
@@ -296,18 +306,14 @@ public final class CohenDEffectSizeLogic {
 		// Add the result to statistics table
 		dCohend = oCohenDEffectSizeLogic.getCohenD().doubleValue();
 		sIsFailed = "false";
-		if (dCohend >=  dCohendAL) {
+		if (dCohend >= dCohendAL) {
 			sIsFailed = "true";
 		}
-		Object[] oArrayRowData = {
-				AVERAGE_OF_AVERAGES,
-				iCntA,
-				iCntB,
-				Long.valueOf((long)oCohenDEffectSizeLogic.getMeanA()),
-				Long.valueOf((long)oCohenDEffectSizeLogic.getMeanB()),
-				Math.abs(oCohenDEffectSizeLogic.getCohenD().doubleValue()),
-				oCohenDEffectSizeLogic.getDiffRating(),
-				sIsFailed};
+		Object[] oArrayRowData = { AVERAGE_OF_AVERAGES, iCntA, iCntB,
+				Long.valueOf((long) oCohenDEffectSizeLogic.getMeanA()),
+				Long.valueOf((long) oCohenDEffectSizeLogic.getMeanB()),
+				Math.abs(oCohenDEffectSizeLogic.getCohenD().doubleValue()), oCohenDEffectSizeLogic.getDiffRating(),
+				sIsFailed };
 		pwrTblMdlStats.addRow(oArrayRowData);
 
 		return iFailedLblCnt;
@@ -316,6 +322,7 @@ public final class CohenDEffectSizeLogic {
 	public static boolean isCohendALOutOfRange(double fCohendAL) {
 		return fCohendAL < 0;
 	}
+
 	public static String saveTableStatsAsCsv(String sFilePath) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
@@ -328,8 +335,7 @@ public final class CohenDEffectSizeLogic {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + "_CompareStats.html";
-		String sTableTitle = "Results Comparison (Cohen's d Acceptable Limit = "
-				+ sCohensdAL + ")";
+		String sTableTitle = "Results Comparison (Cohen's d Acceptable Limit = " + sCohensdAL + ")";
 		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
 		return sOutputFile;
 	}
@@ -338,7 +344,7 @@ public final class CohenDEffectSizeLogic {
 		// returns Pooled standard deviation, as per specs
 		return Math.sqrt(((iN1 - 1) * dVariance1 + (iN2 - 1) * dVariance2) / (iN1 + iN2 - 2));
 	}
-	
+
 	private static double calcCohensd(double dMean1, double dMean2, double dPooledSD) {
 		// returns Cohen's d, as per specs
 		return (dMean2 - dMean1) / dPooledSD;
