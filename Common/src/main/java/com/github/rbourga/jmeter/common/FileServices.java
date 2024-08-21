@@ -29,6 +29,9 @@ import org.jsoup.nodes.Element;
  */
 public final class FileServices {
 
+	/*
+	 * Validation methods
+	 */
 	public static boolean isFileExist(String sFilePath) {
 		return (new File(sFilePath).exists());
 	}
@@ -48,11 +51,13 @@ public final class FileServices {
 		}
 	}
 
+	/*
+	 * Consolidation methods
+	 */
 	public static Map<String, List<CSVRecord>> loadSamplesIntoHashMap(String sFilePath, char cDelim) {
-		// Store the samples and group them by their labels in separate lists
-		HashMap<String, List<CSVRecord>> rcdHashMap = new HashMap<>();
-		CSVFormat csvFmt;
+		// Stores the samples and group them by their labels in separate lists
 
+		CSVFormat csvFmt;
 		if (cDelim == ',') {
 			// Comma separated format
 			csvFmt = CSVFormat.RFC4180.builder().setHeader().setSkipHeaderRecord(true).build();
@@ -61,6 +66,7 @@ public final class FileServices {
 			csvFmt = CSVFormat.TDF.builder().setHeader().setSkipHeaderRecord(true).build();
 		}
 
+		HashMap<String, List<CSVRecord>> rcdHashMap = new HashMap<>();
 		try (FileReader fileRdr = new FileReader(sFilePath); CSVParser csvParser = new CSVParser(fileRdr, csvFmt)) {
 			for (CSVRecord rcd : csvParser) {
 				String sLabel = rcd.get("label");
@@ -78,8 +84,8 @@ public final class FileServices {
 	}
 
 	public static void saveCSVRecsToFile(String sFilePath, List<CSVRecord> listCSVRecs, char cDelim) {
-		CSVFormat csvFmt;
 
+		CSVFormat csvFmt;
 		if (cDelim == ',') {
 			// Comma separated format
 			csvFmt = CSVFormat.RFC4180;
@@ -124,18 +130,17 @@ public final class FileServices {
 		}
 	}
 
-	public static void saveTableAsHTML(String sFilePath, String sTblCaption, DefaultTableModel tblMdl, int iBoolColNbr) {
+	public static void saveTableAsHTML(String sFilePath, String sTblCaption, DefaultTableModel tblMdl,
+			int iBoolColNbr) {
 		/**
 		 * This method saves the data from a table model into an HTML file. Background
 		 * color of the rows depend on iBoolClnNbr and will be set as follow:
-		 *  -1: default color
-		 *  any positive number: will check for value in the column number and if:
-		 *   true: orange
-		 *   false: green
-		 *   na: orange
+		 * -1:default color
+		 * any positive number: will check for value in the column number and if:
+		 *  true: red 
+		 *  false: green
+		 *  na: orange
 		 */
-		String sColName, sHtmlOut, sRoundedPct;
-		double dPctValue;
 		DecimalFormat df4digits = new DecimalFormat("#.####");
 
 		// Create empty HTML shell
@@ -172,13 +177,13 @@ public final class FileServices {
 			}
 			for (int j = 0; j < colCnt; j++) {
 				Element eTd = docHtml.createElement("td");
-				sHtmlOut = tblMdl.getValueAt(i, j).toString();
+				String sHtmlOut = tblMdl.getValueAt(i, j).toString();
 				// Convert to percentage if needed
-				sColName = tblMdl.getColumnName(j);
+				String sColName = tblMdl.getColumnName(j);
 				if (sColName.contains("%")) {
-					dPctValue = ((double) tblMdl.getValueAt(i, j)) * 100;
+					double dPctValue = ((double) tblMdl.getValueAt(i, j)) * 100;
 					// Only keep 4 digits
-					sRoundedPct = df4digits.format(dPctValue);
+					String sRoundedPct = df4digits.format(dPctValue);
 					sHtmlOut = sRoundedPct + "%";
 				}
 				eTd.text(sHtmlOut);

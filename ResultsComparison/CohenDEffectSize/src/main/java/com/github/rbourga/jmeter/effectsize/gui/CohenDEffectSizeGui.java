@@ -45,6 +45,7 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 	 * means to handle SampleResults.
 	 */
 	private static final long serialVersionUID = 1L;
+	private static final String PLUGIN_LABEL = "Results Comparator";
 	private static final String WIKIPAGE = "https://github.com/rbourga/rbourga-jmeter-plugins/wiki/Results-Comparison";
 	private static final String[] EXTS = { ".jtl", ".csv", ".tsv" };
 	private static final String ACTION_COMPARE = "compare";
@@ -99,7 +100,8 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 		JTable jTblStats = new JTable(CohenDEffectSizeLogic.getPwrTblMdelStats());
 		JMeterUtils.applyHiDPI(jTblStats);
 		jTblStats.setAutoCreateRowSorter(true);
-		RendererUtils.applyRenderers(jTblStats, new TableCellRenderer[] { null, // Label
+		RendererUtils.applyRenderers(
+				jTblStats, new TableCellRenderer[] { null, // Label
 				null, // # Samples A
 				null, // # Samples B
 				new MinMaxLongRenderer("#0"), // Average A
@@ -133,38 +135,6 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 	 * Section to override AbstractVisualizer's methods
 	 */
 	@Override
-	public Collection<String> getMenuCategories() {
-		// Add this visualizer to the Non-Test Elements menu of the JMeter GUI
-		return Arrays.asList(MenuFactory.NON_TEST_ELEMENTS);
-	}
-
-	@Override
-	public String getLabelResource() {
-		/*
-		 * TODO get the title name (an possibly translations) from the
-		 * message.properties file. The files are located in
-		 * core/org/apache/jmeter/resources.
-		 */
-		return this.getClass().getSimpleName();
-	}
-
-	@Override
-	public String getStaticLabel() {
-		// return JMeterPluginsUtils.prefixLabel("Apdex Score Calculator");
-		return "Results Comparator";
-	}
-
-	@Override
-	public void clearData() {
-		/*
-		 * Called when user clicks on "Clear" or "Clear All" buttons. Clears data
-		 * specific to this plugin
-		 */
-		CohenDEffectSizeLogic.getPwrTblMdelStats().clearData();
-		CohenDEffectSizeLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
-	}
-
-	@Override
 	public void actionPerformed(ActionEvent actionEvnt) {
 		String sActionCmd = actionEvnt.getActionCommand();
 
@@ -179,18 +149,54 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 						"Save Table Data error");
 				return;
 			}
-			String csvFilename = saveDataModTblAsCsv();
+			String sInFileB = filePnlB.getFilename();
+			String csvFilename = CohenDEffectSizeLogic.saveTableStatsAsCsv(sInFileB);
 			GuiPackage.showInfoMessage("Data saved to " + csvFilename, "Save Table Data");
 			break;
 		default:
 		}
 	}
 
-	private String saveDataModTblAsCsv() {
-		String sInFileB = filePnlB.getFilename();
-		return CohenDEffectSizeLogic.saveTableStatsAsCsv(sInFileB);
+	@Override
+	public void add(SampleResult sample) {
+		// Unused Auto-generated method stub
 	}
 
+	@Override
+	public void clearData() {
+		/*
+		 * Called when user clicks on "Clear" or "Clear All" buttons. Clears data
+		 * specific to this plugin
+		 */
+		CohenDEffectSizeLogic.getPwrTblMdelStats().clearData();
+		CohenDEffectSizeLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
+	}
+
+	@Override
+	public String getLabelResource() {
+		/*
+		 * TODO get the title name (an possibly translations) from the
+		 * message.properties file. The files are located in
+		 * core/org/apache/jmeter/resources.
+		 */
+		return this.getClass().getSimpleName();
+	}
+
+	@Override
+	public Collection<String> getMenuCategories() {
+		// Add this visualizer to the Non-Test Elements menu of the JMeter GUI
+		return Arrays.asList(MenuFactory.NON_TEST_ELEMENTS);
+	}
+
+	@Override
+	public String getStaticLabel() {
+		// return JMeterPluginsUtils.prefixLabel("Apdex Score Calculator");
+		return PLUGIN_LABEL;
+	}
+
+	/*
+	 * Private methods
+	 */
 	private void actionCompare() {
 		// Parse Cohen's d threshold
 		double fCohendAL = ((Number) jFTxtFldCohendAL.getValue()).doubleValue();
@@ -254,8 +260,4 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 		CohenDEffectSizeLogic.getPwrTblMdelStats().fireTableDataChanged();
 	}
 
-	@Override
-	public void add(SampleResult sample) {
-		// Unused Auto-generated method stub
-	}
 }

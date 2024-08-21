@@ -20,10 +20,14 @@ import com.github.rbourga.jmeter.common.FileServices;
 
 public final class ApdexLogic {
 
+	private static String HTML_STATS_TITLE = "Apdex Score Results";
+	private static String SUFFIX_STATS = "_ApdexScores.";
+
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
 	private static PowerTableModel pwrTblMdlStats = new PowerTableModel(
-			new String[] { JMeterUtils.getResString("sampler label"), // Label
+			new String[] { 
+					JMeterUtils.getResString("sampler label"), // Label
 					JMeterUtils.getResString("aggregate_report_count"), // # Samples
 					/*
 					 * Hiding Average as it should be calculated only on successful results and
@@ -34,7 +38,8 @@ public final class ApdexLogic {
 					"Apdex Value", "Apdex Target (s)", // Target threshold
 					"Apdex Rating", "Small Group", // true if number of samples < 100
 					"Failed" // true if value less than the specified threshold
-			}, new Class[] { String.class, // Label
+			}, new Class[] {
+					String.class, // Label
 					Integer.class, // # Samples
 //					Double.class,	// Average
 					Double.class, // # Error %
@@ -50,15 +55,25 @@ public final class ApdexLogic {
 		return pwrTblMdlStats;
 	}
 
-	public static int computeApdexScore(String sFilepath, double dApdexTgtTholdSec, double dApdexAQL) {
-		int iTotRcd;
-		long lSatisfiedCount, lToleratingCount, lFailedCount;
-		BigDecimal bdApdexScore, bdApdexScoreRnd, bdErrPct, bdErrPctRnd;
-		BigDecimal bdApdexAQL = new BigDecimal(dApdexAQL);
-		String sApdexRating, sIsSmallGroup, sIsFailed;
-		List<CSVRecord> aRcd;
-		Stream<CSVRecord> oPassedSamples, oSatisfiedSamples, oToleratingSamples, oFailedSamples;
+	/*
+	 * Validation methods
+	 */
+	public static boolean isApdexMinScoreOutOfRange(double dValue) {
+		return dValue < 0 || dValue > 1;
+	}
 
+	public static boolean isCoVPctOutOfRange(double fCoVALPct) {
+		return fCoVALPct < 0;
+	}
+
+	public static boolean isTgtTHoldOutOfRange(double dValue) {
+		return dValue < 0.1;
+	}
+
+	/*
+	 * Computing method
+	 */
+	public static int computeApdexScore(String sFilepath, double dApdexTgtTholdSec, double dApdexAQL) {
 		// Load the data after getting the delimiter separator from current JMeter
 		// properties
 		char cDelim = SampleSaveConfiguration.staticConfig().getDelimiter().charAt(0);
@@ -72,6 +87,7 @@ public final class ApdexLogic {
 
 		// Format the threshold as per Apdex specs
 		dApdexTgtTholdSec = ApdexLogic.formatTgtTHold(dApdexTgtTholdSec);
+		BigDecimal bdApdexAQL = new BigDecimal(dApdexAQL);
 
 		long lApdexTgtTholdMS = (long) (dApdexTgtTholdSec * 1000); // Convert to ms as JMeter times are stored in ms
 		long lApdexTolTholdMS = 4 * lApdexTgtTholdMS; // Tolerate = 4xTarget, as per Apdex specs
@@ -79,51 +95,50 @@ public final class ApdexLogic {
 		// Now, process the data points in natural order...
 		TreeMap<String, List<CSVRecord>> tmSortedRcd = new TreeMap<>(rcdHashMap);
 		for (String sLbl : tmSortedRcd.keySet()) {
-			aRcd = tmSortedRcd.get(sLbl);
-			iTotRcd = aRcd.size();
+			List<CSVRecord> aRcd = tmSortedRcd.get(sLbl);
+			int iTotRcd = aRcd.size();
 
 			/*
 			 * As per Apdex specs, all server failures must be counted as frustrated
 			 * regardless of their time. So we must calculate Apdex only on the successful
 			 * samples.
 			 */
+			Stream<CSVRecord> oPassedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("true"));
+			// Satisfied list of samples: 0 to T
+			Stream<CSVRecord> oSatisfiedSamples = oPassedSamples.filter(rcd -> Long.parseLong(rcd.get("elapsed")) <= lApdexTgtTholdMS);
+			long lSatisfiedCount = oSatisfiedSamples.count();
+			// Tolerating list of samples: T to F
+			// Reset the successful stream as a stream can only be used once
 			oPassedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("true"));
-			// Satisfied list of samples
-			oSatisfiedSamples = oPassedSamples.filter(rcd -> Long.parseLong(rcd.get("elapsed")) <= lApdexTgtTholdMS); // 0
-																														// to
-																														// T
-			lSatisfiedCount = oSatisfiedSamples.count();
-			// Tolerating list of samples: reset the successful stream as a stream can only
-			// be used once
-			oPassedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("true"));
-			oToleratingSamples = oPassedSamples.filter(rcd -> ((Long.parseLong(rcd.get("elapsed")) > lApdexTgtTholdMS)
-					&& ((Long.parseLong(rcd.get("elapsed")) < lApdexTolTholdMS)))); // T to F
-			lToleratingCount = oToleratingSamples.count();
+			Stream<CSVRecord> oToleratingSamples = oPassedSamples.filter(rcd -> ((Long.parseLong(rcd.get("elapsed")) > lApdexTgtTholdMS)
+					&& ((Long.parseLong(rcd.get("elapsed")) < lApdexTolTholdMS))));
+			long lToleratingCount = oToleratingSamples.count();
 
 			// Now compute the Apdex value
-			bdApdexScore = new BigDecimal((lSatisfiedCount + (lToleratingCount / 2.0)) / iTotRcd);
+			BigDecimal bdApdexScore = new BigDecimal((lSatisfiedCount + (lToleratingCount / 2.0)) / iTotRcd);
 			// Round to 2 decimal places as per Apdex specs
-			bdApdexScoreRnd = bdApdexScore.setScale(2, RoundingMode.HALF_UP);
+			BigDecimal bdApdexScoreRnd = bdApdexScore.setScale(2, RoundingMode.HALF_UP);
 			// Set rating as per Apdex specs
-			sApdexRating = setApdexRating(bdApdexScoreRnd);
+			String sApdexRating = setApdexRating(bdApdexScoreRnd);
 
 			// ErrPct formatting: round to 4 decimal places
-			oFailedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("false"));
-			lFailedCount = oFailedSamples.count();
-			bdErrPct = new BigDecimal((double) lFailedCount / iTotRcd);
-			bdErrPctRnd = bdErrPct.setScale(4, RoundingMode.HALF_UP);
+			Stream<CSVRecord> oFailedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("false"));
+			long lFailedCount = oFailedSamples.count();
+			BigDecimal bdErrPct = new BigDecimal((double) lFailedCount / iTotRcd);
+			BigDecimal bdErrPctRnd = bdErrPct.setScale(4, RoundingMode.HALF_UP);
 
 			// Finally update the statistics table
-			sIsSmallGroup = "false";
+			String sIsSmallGroup = "false";
 			if (iTotRcd < 100) {
 				sIsSmallGroup = "true";
 			}
-			sIsFailed = "false";
+			String sIsFailed = "false";
 			if (bdApdexScoreRnd.compareTo(bdApdexAQL) == -1) {
 				sIsFailed = "true";
 				iFailedLblCnt++;
 			}
-			Object[] oArrayRowData = { sLbl, // Label
+			Object[] oArrayRowData = {
+					sLbl, // Label
 					iTotRcd, // # Samples
 //					Long.valueOf((long) mathMoments.getMean()),	// Average
 					bdErrPctRnd.doubleValue(), // # Error %
@@ -137,7 +152,27 @@ public final class ApdexLogic {
 		}
 		return iFailedLblCnt;
 	}
+	
+	public static String saveTableStatsAsCsv(String sFilePath) {
+		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
+		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
+		String sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_STATS + "csv";
+		FileServices.saveTableAsCsv(sOutputFile, pwrTblMdlStats);
+		return sOutputFile;
+	}
 
+	public static String saveTableStatsAsHtml(String sFilePath, String sApdexAQL) {
+		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
+		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
+		String sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_STATS + "html";
+		String sTableTitle = HTML_STATS_TITLE + " (Apdex Acceptable Quality Level = " + sApdexAQL + ")";
+		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
+		return sOutputFile;
+	}
+
+	/*
+	 * Private methods
+	 */
 	private static double formatTgtTHold(double dTgtThold) {
 		// Format the threshold as per Apdex specs
 		// For values greater than 10s, define the value to one second
@@ -172,32 +207,4 @@ public final class ApdexLogic {
 		return sRating;
 	}
 
-	public static boolean isApdexMinScoreOutOfRange(double dValue) {
-		return dValue < 0 || dValue > 1;
-	}
-
-	public static boolean isCoVPctOutOfRange(double fCoVALPct) {
-		return fCoVALPct < 0;
-	}
-
-	public static boolean isTgtTHoldOutOfRange(double dValue) {
-		return dValue < 0.1;
-	}
-
-	public static String saveTableStatsAsCsv(String sFilePath) {
-		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
-		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexScores.csv";
-		FileServices.saveTableAsCsv(sOutputFile, pwrTblMdlStats);
-		return sOutputFile;
-	}
-
-	public static String saveTableStatsAsHtml(String sFilePath, String sApdexAQL) {
-		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
-		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_ApdexScores.html";
-		String sTableTitle = "Apdex Score Results (Apdex Acceptable Quality Level = " + sApdexAQL + ")";
-		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
-		return sOutputFile;
-	}
 }

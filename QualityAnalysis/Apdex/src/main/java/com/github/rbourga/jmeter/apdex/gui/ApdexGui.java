@@ -44,6 +44,7 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 	 * means to handle SampleResults.
 	 */
 	private static final long serialVersionUID = 1L;
+	private static final String PLUGIN_LABEL = "Apdex Score Calculator";
 	private static final String WIKIPAGE = "https://github.com/rbourga/rbourga-jmeter-plugins/wiki/APDEX-Score-Calculator";
 	private static final String[] EXTS = { ".jtl", ".csv", ".tsv" };
 	private static final String ACTION_CALCULATE = "calculate";
@@ -144,38 +145,6 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 	 * Section to override AbstractVisualizer's methods
 	 */
 	@Override
-	public Collection<String> getMenuCategories() {
-		// Add this visualizer to the Non-Test Elements menu of the JMeter GUI
-		return Arrays.asList(MenuFactory.NON_TEST_ELEMENTS);
-	}
-
-	@Override
-	public String getLabelResource() {
-		/*
-		 * TODO get the title name (an possibly translations) from the
-		 * message.properties file. The files are located in
-		 * core/org/apache/jmeter/resources.
-		 */
-		return this.getClass().getSimpleName();
-	}
-
-	@Override
-	public String getStaticLabel() {
-		// return JMeterPluginsUtils.prefixLabel("Apdex Score Calculator");
-		return "Apdex Score Calculator";
-	}
-
-	@Override
-	public void clearData() {
-		/*
-		 * Called when user clicks on "Clear" or "Clear All" buttons. Clears data
-		 * specific to this plugin
-		 */
-		ApdexLogic.getPwrTblMdelStats().clearData();
-		ApdexLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
-	}
-
-	@Override
 	public void actionPerformed(ActionEvent actionEvnt) {
 		String sActionCmd = actionEvnt.getActionCommand();
 
@@ -190,18 +159,54 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 						"Save Table Data error");
 				return;
 			}
-			String csvFilename = saveDataModTblAsCsv();
+			String sInFile = filePnl.getFilename();
+			String csvFilename = ApdexLogic.saveTableStatsAsCsv(sInFile);
 			GuiPackage.showInfoMessage("Data saved to " + csvFilename, "Save Table Data");
 			break;
 		default:
 		}
 	}
 
-	private String saveDataModTblAsCsv() {
-		String sInFile = filePnl.getFilename();
-		return ApdexLogic.saveTableStatsAsCsv(sInFile);
+	@Override
+	public void add(SampleResult sample) {
+		// Unused Auto-generated method stub
 	}
 
+	@Override
+	public void clearData() {
+		/*
+		 * Called when user clicks on "Clear" or "Clear All" buttons. Clears data
+		 * specific to this plugin
+		 */
+		ApdexLogic.getPwrTblMdelStats().clearData();
+		ApdexLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
+	}
+
+	@Override
+	public String getLabelResource() {
+		/*
+		 * TODO get the title name (an possibly translations) from the
+		 * message.properties file. The files are located in
+		 * core/org/apache/jmeter/resources.
+		 */
+		return this.getClass().getSimpleName();
+	}
+
+	@Override
+	public Collection<String> getMenuCategories() {
+		// Add this visualizer to the Non-Test Elements menu of the JMeter GUI
+		return Arrays.asList(MenuFactory.NON_TEST_ELEMENTS);
+	}
+
+	@Override
+	public String getStaticLabel() {
+		// return JMeterPluginsUtils.prefixLabel("Apdex Score Calculator");
+		return PLUGIN_LABEL;
+	}
+
+	/*
+	 * Private methods
+	 */
 	private void actionCalc() {
 		// Parse target threshold
 		double fApdexTgtTholdSec = ((Number) jFtxtFldApdexTgtTholdSec.getValue()).doubleValue();
@@ -246,8 +251,4 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 		ApdexLogic.getPwrTblMdelStats().fireTableDataChanged();
 	}
 
-	@Override
-	public void add(SampleResult sample) {
-		// Unused Auto-generated method stub
-	}
 }

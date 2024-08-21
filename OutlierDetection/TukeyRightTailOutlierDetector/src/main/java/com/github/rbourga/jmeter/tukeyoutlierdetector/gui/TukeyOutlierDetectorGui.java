@@ -48,17 +48,19 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 	 * means to handle SampleResults.
 	 */
 	private static final long serialVersionUID = 1L;
+	private static final String PLUGIN_LABEL = "Upper Outlier Removal";
 	private static final String WIKIPAGE = "https://github.com/rbourga/rbourga-jmeter-plugins/wiki/Right-Tail-Outlier-Detection";
 	private static final String[] EXTS = { ".jtl", ".csv", ".tsv" };
 	private static final String ACTION_DETECT = "detect";
 	private static final String ACTION_SAVE = "save";
 
-	// Objects for the UI Panels
-	// Buttons for Tukey's Control Panel
+	// UI String constants
 	private JRadioButton jRadioBtn_1_5 = new JRadioButton("1.5 (remove all upper outliers)", false);
 	private JRadioButton jRadioBtn_3 = new JRadioButton("3 (remove only extreme upper outliers)", false);
 	private JRadioButton jRadioBtn_carling = new JRadioButton("Carling (dynamic k)", true);
 	private final JLabel jLblRemAL = new JLabel("Removal Acceptable Limit (%) ");
+
+	// Instance variables
 	private JFormattedTextField jFTxtFldRemAL;
 	private FilePanel filePnl;
 
@@ -115,7 +117,8 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 		JTable jTblStats = new JTable(TukeyOutlierDetectorLogic.getPwrTblMdelStats());
 		JMeterUtils.applyHiDPI(jTblStats);
 		jTblStats.setAutoCreateRowSorter(true);
-		RendererUtils.applyRenderers(jTblStats, new TableCellRenderer[] { null, // Label
+		RendererUtils.applyRenderers(
+				jTblStats, new TableCellRenderer[] { null, // Label
 				null, // # Samples
 				new MinMaxLongRenderer("#0"), // Average
 				null, // Upper Fence
@@ -149,37 +152,6 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 	 * Section to override AbstractVisualizer's methods
 	 */
 	@Override
-	public Collection<String> getMenuCategories() {
-		// Add this visualizer to the Non-Test Elements menu of the JMeter GUI
-		return Arrays.asList(MenuFactory.NON_TEST_ELEMENTS);
-	}
-
-	@Override
-	public String getLabelResource() {
-		/*
-		 * TODO get the title name (an possibly translations) from the
-		 * message.properties file. The files are located in
-		 * core/org/apache/jmeter/resources.
-		 */
-		return this.getClass().getSimpleName();
-	}
-
-	@Override
-	public String getStaticLabel() {
-		return "Upper Outlier Removal";
-	}
-
-	@Override
-	public void clearData() {
-		/*
-		 * Called when user clicks on "Clear" or "Clear All" buttons. Clears data
-		 * specific to this plugin
-		 */
-		TukeyOutlierDetectorLogic.getPwrTblMdelStats().clearData();
-		TukeyOutlierDetectorLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
-	}
-
-	@Override
 	public void actionPerformed(ActionEvent actionEvnt) {
 		String sActionCmd = actionEvnt.getActionCommand();
 
@@ -194,18 +166,53 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 						"Save Table Data error");
 				return;
 			}
-			String csvFilename = saveDataModTblAsCsv();
+			String sInFile = filePnl.getFilename();
+			String csvFilename = TukeyOutlierDetectorLogic.saveTableStatsAsCsv(sInFile);
 			GuiPackage.showInfoMessage("Data saved to " + csvFilename, "Save Table Data");
 			break;
 		default:
 		}
 	}
 
-	private String saveDataModTblAsCsv() {
-		String sInFile = filePnl.getFilename();
-		return TukeyOutlierDetectorLogic.saveTableStatsAsCsv(sInFile);
+	@Override
+	public void add(SampleResult sample) {
+		// Unused Auto-generated method stub
 	}
 
+	@Override
+	public void clearData() {
+		/*
+		 * Called when user clicks on "Clear" or "Clear All" buttons. Clears data
+		 * specific to this plugin
+		 */
+		TukeyOutlierDetectorLogic.getPwrTblMdelStats().clearData();
+		TukeyOutlierDetectorLogic.getPwrTblMdelStats().fireTableDataChanged(); // Repaint the table
+	}
+
+	@Override
+	public String getLabelResource() {
+		/*
+		 * TODO get the title name (an possibly translations) from the
+		 * message.properties file. The files are located in
+		 * core/org/apache/jmeter/resources.
+		 */
+		return this.getClass().getSimpleName();
+	}
+
+	@Override
+	public Collection<String> getMenuCategories() {
+		// Add this visualizer to the Non-Test Elements menu of the JMeter GUI
+		return Arrays.asList(MenuFactory.NON_TEST_ELEMENTS);
+	}
+
+	@Override
+	public String getStaticLabel() {
+		return PLUGIN_LABEL;
+	}
+
+	/*
+	 * Private methods
+	 */
 	private void actionDetect() {
 		// Parse trim % value
 		double fRemALPct = ((Number) jFTxtFldRemAL.getValue()).doubleValue();
@@ -250,8 +257,4 @@ public class TukeyOutlierDetectorGui extends AbstractVisualizer implements Actio
 		TukeyOutlierDetectorLogic.getPwrTblMdelStats().fireTableDataChanged();
 	}
 
-	@Override
-	public void add(SampleResult sample) {
-		// Unused Auto-generated method stub
-	}
 }

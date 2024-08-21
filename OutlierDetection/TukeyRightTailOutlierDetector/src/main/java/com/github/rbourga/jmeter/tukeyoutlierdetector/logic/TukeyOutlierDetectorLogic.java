@@ -25,18 +25,24 @@ public final class TukeyOutlierDetectorLogic {
 
 	private static DecimalFormat df2Decimals = new DecimalFormat("0.00");
 
+	private static String HTML_STATS_TITLE = "Summary of Upper Outliers Removal";
+	private static String SUFFIX_OUTLIERS_ONLY = "_True_UpperOutliers.";
+	private static String SUFFIX_WITHOUT_OUTLIERS = "_True_WOupperOutliers.";
+	private static String SUFFIX_STATS = "_UpperTrimStats.";
+
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
 	private static PowerTableModel pwrTblMdlStats = new PowerTableModel(
-			new String[] { JMeterUtils.getResString("sampler label"), // Label
+			new String[] {
+					JMeterUtils.getResString("sampler label"), // Label
 					JMeterUtils.getResString("aggregate_report_count"), // # Samples
 					JMeterUtils.getResString("average"), // Average
-					"Upper Fence",
-					"# Removed", // number of samples that have been discarded
+					"Upper Fence", "# Removed", // number of samples that have been discarded
 					"Removed %", // percentage of samples that have been discarded
 					"Small Group", // true if remaining number of samples < 100
 					"Failed" // true if value greater than the specified threshold
-			}, new Class[] { String.class, // Label
+			}, new Class[] {
+					String.class, // Label
 					Integer.class, // # Samples
 					Double.class, // Average
 					Double.class, // Upper Fence
@@ -51,16 +57,20 @@ public final class TukeyOutlierDetectorLogic {
 		return pwrTblMdlStats;
 	}
 
+	/*
+	 * Public methods
+	 */
+	public static boolean isTrimPctOutOfRange(double fPct) {
+		return fPct < 0;
+	}
+
 	public static int RemoveUpper(String sFilepath, double fTukeyK, double fMaxRemPct) {
 		/*
 		 * Will remove only upper outliers (which are bigger than the upper boundary).
 		 */
-		boolean bIsUpperRemoved;
-		int iInitPassedLblCnt, iUpprOutlierCnt;
-		double fUpFence, fUpFenceMin;
-		String sKrounded, sOutputFile, sIsSmallGroup, sIsFailed;
-		List<CSVRecord> aLblRcd, mergedOutliers = null, mergedWithoutOutliers = null, aLblRcdPassed = null;
-		MathMoments mathMoments;
+		int iInitPassedLblCnt;
+		double fUpFenceMin;
+		List<CSVRecord> mergedOutliers = null, mergedWithoutOutliers = null, aLblRcdPassed = null;
 
 		double fK = fTukeyK;
 		BigDecimal bdMaxRemPct = new BigDecimal(fMaxRemPct);
@@ -81,8 +91,8 @@ public final class TukeyOutlierDetectorLogic {
 		TreeMap<String, List<CSVRecord>> tmSortedRcd = new TreeMap<>(rcdHashMap);
 		// Loop through the Labels in the dataset
 		for (String sLbl : tmSortedRcd.keySet()) {
-			aLblRcd = tmSortedRcd.get(sLbl);
-			fUpFence = 0.0;
+			List<CSVRecord> aLblRcd = tmSortedRcd.get(sLbl);
+			double fUpFence = 0.0;
 			fUpFenceMin = Double.MAX_VALUE;
 
 			// We focus on successful samplers as they are the main interest
@@ -99,7 +109,7 @@ public final class TukeyOutlierDetectorLogic {
 				if (fTukeyK == 0) {
 					// Use Carling's formulae and round to 2 decimal places
 					fK = ((17.63 * iInitPassedLblCnt) - 23.64) / ((7.74 * iInitPassedLblCnt) - 3.71);
-					sKrounded = df2Decimals.format(fK);
+					String sKrounded = df2Decimals.format(fK);
 					// Convert value back to double
 					fK = Double.parseDouble(sKrounded);
 				}
@@ -107,9 +117,10 @@ public final class TukeyOutlierDetectorLogic {
 				 * An outlier can hide another outlier...so when removing extreme values, we
 				 * have to iterate until no extreme values are left.
 				 */
+				boolean bIsUpperRemoved;
 				do {
 					// Update the stats on the series and get the new upper fence
-					mathMoments = MathMoments.crteMomentsFromRecordsList(aLblRcdPassed);
+					MathMoments mathMoments = MathMoments.crteMomentsFromRecordsList(aLblRcdPassed);
 					fUpFence = getUpprFence(mathMoments, fK);
 					// Save the most severe limit for the report
 					fUpFenceMin = Math.min(fUpFence, fUpFenceMin);
@@ -140,22 +151,23 @@ public final class TukeyOutlierDetectorLogic {
 			}
 
 			// Save the results in the table
-			sIsSmallGroup = "false";
+			String sIsSmallGroup = "false";
 			if (aLblRcdPassed.size() < 100) {
 				sIsSmallGroup = "true";
 			}
-			iUpprOutlierCnt = iInitPassedLblCnt - aLblRcdPassed.size();
+			int iUpprOutlierCnt = iInitPassedLblCnt - aLblRcdPassed.size();
 			BigDecimal bdUpprOutlierPct = (iInitPassedLblCnt == 0) ? new BigDecimal(0)
 					: new BigDecimal((double) iUpprOutlierCnt / (double) iInitPassedLblCnt);
 			// Round % to 4 decimal places
 			BigDecimal bdUpprOutlierPctRnd = bdUpprOutlierPct.setScale(4, RoundingMode.HALF_UP);
-			sIsFailed = "false";
+			String sIsFailed = "false";
 			if (bdUpprOutlierPctRnd.compareTo(bdMaxRemPct) != -1) {
 				sIsFailed = "true";
 				iFailedLblCnt++;
 			}
 			// Update the statistics table
-			Object[] oArrayRowData = { sLbl, // Label
+			Object[] oArrayRowData = {
+					sLbl, // Label
 					iInitPassedLblCnt, // # Samples
 					Long.valueOf((long) dAvg), // Average
 					fUpFenceMin, // Upper Fence
@@ -170,28 +182,37 @@ public final class TukeyOutlierDetectorLogic {
 		String sFileBaseName = FilenameUtils.getBaseName(sFilepath);
 		String sFileExtension = FilenameUtils.getExtension(sFilepath);
 		// Save cleansed results in a file for post statistics
-		sOutputFile = sFileDirectoryName + sFileBaseName + "_True_WOupperOutliers." + sFileExtension;
+		String sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_WITHOUT_OUTLIERS + sFileExtension;
 		FileServices.saveCSVRecsToFile(sOutputFile, mergedWithoutOutliers, cDelim);
 		// Save the outliers in a separate file for post analysis
 		if (mergedOutliers != null) {
-			sOutputFile = sFileDirectoryName + sFileBaseName + "_True_UpperOutliers." + sFileExtension;
+			sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_OUTLIERS_ONLY + sFileExtension;
 			FileServices.saveCSVRecsToFile(sOutputFile, mergedOutliers, cDelim);
 		}
 
 		return iFailedLblCnt;
 	}
 
-	private static double getUpprFence(MathMoments mathMoments, double fK) {
-
-		// Return the upper fence value to 2 decimal places
-		double fInterQuartileRange = mathMoments.getQ3() - mathMoments.getQ1();
-		double fUpperFence = mathMoments.getQ3() + (fK * fInterQuartileRange);
-		String sUpperFencerounded = df2Decimals.format(fUpperFence);
-		// Convert value back to double
-		fUpperFence = Double.parseDouble(sUpperFencerounded);
-		return fUpperFence;
+	public static String saveTableStatsAsCsv(String sFilePath) {
+		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
+		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
+		String sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_STATS + "csv";
+		FileServices.saveTableAsCsv(sOutputFile, pwrTblMdlStats);
+		return sOutputFile;
 	}
 
+	public static String saveTableStatsAsHtml(String sFilePath, String sRemALPct) {
+		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
+		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
+		String sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_STATS + "html";
+		String sTableTitle = HTML_STATS_TITLE + " (Removal Acceptable Limit = " + sRemALPct + ")";
+		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
+		return sOutputFile;
+	}
+
+	/*
+	 * Private methods
+	 */
 	private static List<CSVRecord> addCSVList2To1(List<CSVRecord> listCSV1, List<CSVRecord> listCSV2) {
 		if (listCSV1 == null) {
 			listCSV1 = new ArrayList<>(listCSV2);
@@ -201,24 +222,14 @@ public final class TukeyOutlierDetectorLogic {
 		return listCSV1;
 	}
 
-	public static boolean isTrimPctOutOfRange(double fPct) {
-		return fPct < 0;
+	private static double getUpprFence(MathMoments mathMoments, double fK) {
+		// Return the upper fence value to 2 decimal places
+		double fInterQuartileRange = mathMoments.getQ3() - mathMoments.getQ1();
+		double fUpperFence = mathMoments.getQ3() + (fK * fInterQuartileRange);
+		String sUpperFencerounded = df2Decimals.format(fUpperFence);
+		// Convert value back to double
+		fUpperFence = Double.parseDouble(sUpperFencerounded);
+		return fUpperFence;
 	}
 
-	public static String saveTableStatsAsCsv(String sFilePath) {
-		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
-		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_UpperTrimStats.csv";
-		FileServices.saveTableAsCsv(sOutputFile, pwrTblMdlStats);
-		return sOutputFile;
-	}
-
-	public static String saveTableStatsAsHtml(String sFilePath, String sRemALPct) {
-		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
-		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
-		String sOutputFile = sFileDirectoryName + sFileBaseName + "_UpperTrimStats.html";
-		String sTableTitle = "Summary of Upper Outliers Removal (Removal Acceptable Limit = " + sRemALPct + ")";
-		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
-		return sOutputFile;
-	}
 }
