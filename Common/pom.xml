@@ -40,4 +40,5 @@
   	<developerConnection>Robert Bourgault du Coudray</developerConnection>
   </scm>
   <description>Common classes shared by the JMeter plugins in this repo.</description>
+  <name>Common Classes for Quality Analysis</name>
 </project>

@@ -3,7 +3,6 @@
   <groupId>com.github.rbourga.jmeter</groupId>
   <artifactId>jmeter-plugins-modalitycovcheck</artifactId>
   <version>1.2.0</version>
-  <name>Quality Analysis</name>
   <description>Checks the modality of Samplers as well as their Coefficient of Variation.</description>
   <properties>
   	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -68,4 +67,5 @@
 		<version>1.5.5</version>
 	</dependency>
   </dependencies>
+  <name>Modality and CoV test</name>
 </project>

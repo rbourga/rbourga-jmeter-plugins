@@ -2,8 +2,6 @@ package com.github.rbourga.jmeter.common;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
-
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.math3.stat.StatUtils;
 

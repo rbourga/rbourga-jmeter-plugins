@@ -3,8 +3,7 @@
   <groupId>com.github.rbourga.jmeter</groupId>
   <artifactId>jmeter-plugins-apdexcalculator</artifactId>
   <version>1.2.0</version>
-  <name>Quality Analysis</name>
-  <description>Calculates the Apdex score of Samplers for a given Satisfied Threshold as well as their Coefficient of Variation.</description>
+  <description>Calculates the Apdex score of Samplers for a given Satisfied Threshold.</description>
   <properties>
   	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   	<maven.compiler.source>1.8</maven.compiler.source>
@@ -63,4 +62,5 @@
 		<version>1.2.0</version>
 	</dependency>
   </dependencies>
+  <name>Apdex Score Calculator</name>
 </project>
