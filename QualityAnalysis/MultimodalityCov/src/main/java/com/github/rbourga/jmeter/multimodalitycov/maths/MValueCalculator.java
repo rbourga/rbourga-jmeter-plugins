@@ -3,6 +3,7 @@ package com.github.rbourga.jmeter.multimodalitycov.maths;
 import java.util.List;
 
 import org.apache.commons.csv.CSVRecord;
+
 import com.github.rbourga.jmeter.common.MathMoments;
 
 public class MValueCalculator {
@@ -46,15 +47,14 @@ public class MValueCalculator {
 		String sBinRule = null;
 
 		/*
-		 *  We calculate the mvalue using 2 bin rules and keep the largest mvalue found.
-		 *  See https://en.wikipedia.org/wiki/Histogram
+		 * We calculate the mvalue using 2 bin rules and keep the largest mvalue found.
+		 * See https://en.wikipedia.org/wiki/Histogram
 		 */
 		if (mathMo.getStdDev() != 0) {
 			int iRcdNbr = listRcd.size();
 			for (int i = 0; i < 2; i++) {
-				double dCurrM, dCurrBinSize;
+				double dCurrBinSize;
 				String sCurrRule;
-				int[] currHistogram;
 				if (i == 0) {
 					// 1st try: use of Scott's formula
 					sCurrRule = "Scott";
@@ -62,39 +62,44 @@ public class MValueCalculator {
 				} else {
 					// 2nd try: use of Freedman–Diaconis rule
 					sCurrRule = "Freedman-Diaconis";
-                    double dIQR = mathMo.getQ3() - mathMo.getQ1();
-                    dCurrBinSize = 2 * dIQR / Math.cbrt(iRcdNbr);
+					double dIQR = mathMo.getQ3() - mathMo.getQ1();
+					dCurrBinSize = 2 * dIQR / Math.cbrt(iRcdNbr);
 				}
 
-				// Build the histogram
-				currHistogram = buildHistogram(listRcd, dCurrBinSize, mathMo);
+				double dCurrM = 0;
+				int[] currHistogram = null;
+				if (dCurrBinSize != 0) {
+					// Build the histogram
+					currHistogram = buildHistogram(listRcd, dCurrBinSize, mathMo);
 
-                // Now calculate the mvalue
-    			// See formula at https://www.brendangregg.com/FrequencyTrails/modes.html
-    			// 1. Find the maximum frequency
-    			int iMaxFrequency = 0;
-    			for (int iBin : currHistogram) {
-    				if (iBin > iMaxFrequency) {
-    					iMaxFrequency = iBin;
-    				}
-    			}
-    			// 2. Get mvalue
-    			double dSumOfAbsoluteDifferences = 0;
-    			for (int iH = 1; iH < currHistogram.length; iH++) {
-    				dSumOfAbsoluteDifferences += Math.abs(currHistogram[iH] - currHistogram[iH - 1]);
-    			}
-    			dCurrM = iMaxFrequency == 0 ? 0 : dSumOfAbsoluteDifferences * (1.0 / iMaxFrequency);
-    			
-    			// If mValue is larger, then save this try for the reporting
-    			if (dCurrM > dMvalue) {
-    				dMvalue = dCurrM;
-                    sBinRule = sCurrRule;
-                    dBinSize = dCurrBinSize;
-                    histogram = currHistogram;
-    			}
+					// Now calculate the mvalue
+					// See formula at https://www.brendangregg.com/FrequencyTrails/modes.html
+					// 1. Find the maximum frequency
+					int iMaxFrequency = 0;
+					for (int iBin : currHistogram) {
+						if (iBin > iMaxFrequency) {
+							iMaxFrequency = iBin;
+						}
+					}
+					// 2. Get mvalue
+					double dSumOfAbsoluteDifferences = 0;
+					for (int iH = 1; iH < currHistogram.length; iH++) {
+						dSumOfAbsoluteDifferences += Math.abs(currHistogram[iH] - currHistogram[iH - 1]);
+					}
+					dCurrM = iMaxFrequency == 0 ? 0 : dSumOfAbsoluteDifferences * (1.0 / iMaxFrequency);
+				}
+
+				// If mValue is larger, then save this try for the reporting
+				if (dCurrM > dMvalue) {
+					dMvalue = dCurrM;
+					sBinRule = sCurrRule;
+					dBinSize = dCurrBinSize;
+					histogram = currHistogram;
+				}
 			}
 		}
 		return new MValueCalculator(sBinRule, dBinSize, dMvalue, histogram);
+
 	}
 
 	/*
