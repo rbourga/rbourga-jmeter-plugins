@@ -10,13 +10,13 @@ public class MValueCalculator {
 
 	// Constructor
 	private String sBinRuleName;
-	private double dBinSize;
+	private int iBinSize;
 	private double dMvalue;
 	private int[] iBinsArray; // Array to store the histogram bins
 
-	public MValueCalculator(String sBinRule, double dBinSize, double dMvalue, int[] iBinsArray) {
+	public MValueCalculator(String sBinRule, int iBinSize, double dMvalue, int[] iBinsArray) {
 		this.sBinRuleName = sBinRule;
-		this.dBinSize = dBinSize;
+		this.iBinSize = iBinSize;	// we use an int as we are counting discrete values (i.e., response times in ms)
 		this.dMvalue = dMvalue;
 		this.iBinsArray = iBinsArray;
 	}
@@ -25,8 +25,8 @@ public class MValueCalculator {
 		return sBinRuleName;
 	}
 
-	public double getBinSize() {
-		return dBinSize;
+	public int getBinSize() {
+		return iBinSize;
 	}
 
 	public int[] getiBinsArray() {
@@ -42,7 +42,8 @@ public class MValueCalculator {
 	 */
 	public static MValueCalculator calculate(List<CSVRecord> listRcd, MathMoments mathMo) {
 
-		double dMvalue = 0, dBinSize = 0;
+		double dMvalue = 0;
+		int iBinSize = 0;
 		int[] histogram = null;
 		String sBinRule = null;
 
@@ -53,24 +54,24 @@ public class MValueCalculator {
 		if (mathMo.getStdDev() != 0) {
 			int iRcdNbr = listRcd.size();
 			for (int i = 0; i < 2; i++) {
-				double dCurrBinSize;
+				int iCurrBinSize;
 				String sCurrRule;
 				if (i == 0) {
 					// 1st try: use of Scott's formula
 					sCurrRule = "Scott";
-					dCurrBinSize = 3.5 * mathMo.getStdDev() / Math.cbrt(iRcdNbr);
+					iCurrBinSize = (int) Math.ceil(3.5 * mathMo.getStdDev() / Math.cbrt(iRcdNbr));
 				} else {
 					// 2nd try: use of Freedman–Diaconis rule
 					sCurrRule = "Freedman-Diaconis";
 					double dIQR = mathMo.getQ3() - mathMo.getQ1();
-					dCurrBinSize = 2 * dIQR / Math.cbrt(iRcdNbr);
+					iCurrBinSize = (int) Math.ceil(2 * dIQR / Math.cbrt(iRcdNbr));
 				}
 
 				double dCurrM = 0;
 				int[] currHistogram = null;
-				if (dCurrBinSize != 0) {
+				if (iCurrBinSize != 0) {
 					// Build the histogram
-					currHistogram = buildHistogram(listRcd, dCurrBinSize, mathMo);
+					currHistogram = buildHistogram(listRcd, iCurrBinSize, mathMo);
 
 					// Now calculate the mvalue
 					// See formula at https://www.brendangregg.com/FrequencyTrails/modes.html
@@ -93,31 +94,31 @@ public class MValueCalculator {
 				if (dCurrM > dMvalue) {
 					dMvalue = dCurrM;
 					sBinRule = sCurrRule;
-					dBinSize = dCurrBinSize;
+					iBinSize = iCurrBinSize;
 					histogram = currHistogram;
 				}
 			}
 		}
-		return new MValueCalculator(sBinRule, dBinSize, dMvalue, histogram);
+		return new MValueCalculator(sBinRule, iBinSize, dMvalue, histogram);
 
 	}
 
 	/*
 	 * Private methods
 	 */
-	private static int[] buildHistogram(List<CSVRecord> listRcd, double dBinSize, MathMoments mathMo) {
+	private static int[] buildHistogram(List<CSVRecord> listRcd, int iBinSize, MathMoments mathMo) {
 		double dMin = mathMo.getMin();
 		double dMax = mathMo.getMax();
 
 		// Get the number of bins
-		int iBinCount = (int) Math.ceil((dMax - dMin) / dBinSize);
+		int iBinCount = (int) Math.ceil((dMax - dMin) / iBinSize);
 
 		// Build the array of bins with the count of items in each corresponding bin,
 		// including zero bin terminators
 		int[] iBins = new int[iBinCount + 2]; // Add 2 for zero terminators at the beginning and end (initialized at 0)
 		for (CSVRecord rcd : listRcd) {
 			double dElapsed = Long.parseLong(rcd.get("elapsed"));
-			int iBinIndex = (int) ((dElapsed - dMin) / dBinSize) + 1; // Offset by 1 to account for zero terminator at
+			int iBinIndex = (int) ((dElapsed - dMin) / iBinSize) + 1; // Offset by 1 to account for zero terminator at
 																		// the start
 			// Any data point higher than max bin is counted in the max bin.
 			if (iBinIndex >= iBinCount + 1) {

@@ -36,6 +36,7 @@ public final class MultimodalityCoVLogic {
 					JMeterUtils.getResString("aggregate_report_max"), // Max
 					"CoV %", // Coefficent of Variation
 					"CoV Rating",
+					"Bin Size",
 					"mValue",
 					"Multimodal", // true if multimodal, false otherwise
 					"Failed" // true if excessive CoV or multimodal
@@ -47,11 +48,12 @@ public final class MultimodalityCoVLogic {
 					Double.class, // Max
 					Double.class, // Coefficient of Variation %
 					String.class, // Coefficient of Variation Rating
+					Integer.class, // Bin size
 					Double.class, // mValue
 					String.class, // Multimodal
 					String.class // Failed
 			});
-	private static int PASSFAIL_TEST_COLNBR = 9; // Position of Failed column in the table
+	private static int PASSFAIL_TEST_COLNBR = 10; // Position of Failed column in the table
 
 	private static PowerTableModel pwrTblMdlRows = new PowerTableModel(
 			new String[] {
@@ -65,7 +67,7 @@ public final class MultimodalityCoVLogic {
 					String.class, // Label
 					Double.class, // Min
 					String.class, // Bin Rule
-					Double.class, // Bin size
+					Integer.class, // Bin size
 					String.class, // Multimodal
 					Boolean.class // Check
 			});
@@ -163,6 +165,7 @@ public final class MultimodalityCoVLogic {
 					Long.valueOf((long) mathMoments.getMax()), // Max
 					bdCoVScoreRnd.doubleValue(), // Coef of Var %
 					sCoVRating, // Coef of Var Rating
+					mValueCalculator.getBinSize(), // Bin Size
 					bdMvalueRnd.doubleValue(), // mValue
 					sIsMultimodal, // Multimodal
 					sIsFailed }; // true if values more than the specified thresholds
@@ -173,7 +176,7 @@ public final class MultimodalityCoVLogic {
 					sLbl, // Label
 					Long.valueOf((long) mathMoments.getMin()), // Min
 					mValueCalculator.getBinRule(),	// Bin rule name
-					Long.valueOf((long) mValueCalculator.getBinSize()), // Bin Size
+					mValueCalculator.getBinSize(), // Bin Size
 					sIsMultimodal, // Multimodal
 					false }; // nothing selected by default
 			pwrTblMdlRows.addRow(oArrayRowDataRow);

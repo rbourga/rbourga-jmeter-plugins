@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.rbourga.jmeter</groupId>
   <artifactId>jmeter-plugins-modalitycovcheck</artifactId>
-  <version>1.2.0</version>
+  <version>1.2.1</version>
   <description>Checks the modality of Samplers as well as their Coefficient of Variation.</description>
   <properties>
   	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

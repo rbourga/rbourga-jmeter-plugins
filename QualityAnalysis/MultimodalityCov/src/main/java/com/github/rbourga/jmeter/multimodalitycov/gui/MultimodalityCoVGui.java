@@ -297,6 +297,7 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 				new MinMaxLongRenderer("#0"), // Max
 				new NumberRenderer("#0.00%"), // Cov
 				null, // CoV Rating
+				null, // Bin Size
 				new NumberRenderer("#0.0"), // mValue
 				null, // Multimodal
 				null }); // Pass/Failed indicator
@@ -331,7 +332,7 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 				null, // Label
 				new MinMaxLongRenderer("#0"), // Min
 				null, // Bin rule
-				new MinMaxLongRenderer("#0"), // Bin size
+				null, // Bin Size
 				null, // Multimodal
 				null }); // Check/uncheck indicator
 		// Create the scroll pane and add the table to it
@@ -372,8 +373,8 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		} else {
 			int iNbrOfChecks = aliCheckedRow.size();
 			for (int i = 0; i < iNbrOfChecks; i++) {			
-				long lBinSizei = (long) jTblRows.getValueAt(aliCheckedRow.get(i), iColBin);
-				if (lBinSizei == 0) {
+				int iBinSizei = (int) jTblRows.getValueAt(aliCheckedRow.get(i), iColBin);
+				if (iBinSizei == 0) {
 					GuiPackage.showErrorMessage(
 							"Bin size cannot be 0 - please select rows with bin size different from 0.",
 							"Chart Data error");
@@ -388,14 +389,14 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		for (Integer iRow : aliCheckedRow) {
 			String sLabel = (String) jTblRows.getValueAt(iRow, iColLabel);
 			long lMin = (long) jTblRows.getValueAt(iRow, iColMin);
-			long lBinSize = (long) jTblRows.getValueAt(iRow, iColBin);
+			int iBinSize = (int) jTblRows.getValueAt(iRow, iColBin);
 			int[] aiBins = binsMap.get(sLabel);
 			// Note: the list of bins contain the zero bin terminators at the beginning and
 			// the end.
 			// So we need to skip them in the graph.
 			for (int iBin = 1; iBin < (aiBins.length - 1); iBin++) {
 				// Tag the bins with their actual range on the X-axis
-				String binLabel = getBinLabel(iBin - 1, lMin, lBinSize);
+				String binLabel = getBinLabel(iBin - 1, lMin, iBinSize);
 				catDataset.addValue(aiBins[iBin], sLabel, binLabel);
 			}
 		}
@@ -423,9 +424,9 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		return barChart;
 	}
 
-	private String getBinLabel(int iBinIndex, long lMin, long lBinSize) {
-		int binStart = (int) ((iBinIndex * lBinSize) + lMin);
-		int binEnd = binStart + (int) lBinSize;
+	private String getBinLabel(int iBinIndex, long lMin, int iBinSize) {
+		int binStart = (int) ((iBinIndex * iBinSize) + lMin);
+		int binEnd = binStart + (int) iBinSize;
 		return binStart + "-" + binEnd + " ms";
 	}
 
