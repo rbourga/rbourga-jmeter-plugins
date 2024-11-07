@@ -218,13 +218,14 @@ public final class CohenDEffectSizeLogic {
 			// Only calculate if more than 2 samplers on each side
 			int iCntA = hmCohendResults.get(sLbl).getCountA();
 			int iCntB = hmCohendResults.get(sLbl).getCountB();
-			if ((iCntA >= 2) && (iCntB >= 2)) {
+			if ((iCntA > 2) && (iCntB > 2)) {
 				double dVarA = hmCohendResults.get(sLbl).getVarianceA();
 				double dVarB = hmCohendResults.get(sLbl).getVarianceB();
 				double dMeanA = hmCohendResults.get(sLbl).getMeanA();
 				double dMeanB = hmCohendResults.get(sLbl).getMeanB();
 				double dPooledSD = calcPooledSD(iCntA, dVarA, iCntB, dVarB);
-				double dCohend = calcCohensd(dMeanA, dMeanB, dPooledSD);
+				double dCohend = (dPooledSD == 0) ? 0 : calcCohensd(dMeanA, dMeanB, dPooledSD);
+
 				// Update the stats
 				hmCohendResults.get(sLbl).setCohenD(dCohend);
 				hmCohendResults.get(sLbl).setDiffRating(dCohend);
@@ -275,17 +276,21 @@ public final class CohenDEffectSizeLogic {
 		oCohenDEffectSizeLogic.fMeanB = mathMoments.getMean();
 		oCohenDEffectSizeLogic.fVarianceB = mathMoments.getVariance();
 
-		if ((iCntA >= 2) && (iCntB >= 2)) {
+		if ((iCntA > 2) && (iCntB > 2)) {
 			double dVarA = oCohenDEffectSizeLogic.getVarianceA();
 			double dVarB = oCohenDEffectSizeLogic.getVarianceB();
 			double dMeanA = oCohenDEffectSizeLogic.getMeanA();
 			double dMeanB = oCohenDEffectSizeLogic.getMeanB();
 			double dPooledSD = calcPooledSD(iCntA, dVarA, iCntB, dVarB);
-			double dCohend = calcCohensd(dMeanA, dMeanB, dPooledSD);
+			double dCohend = (dPooledSD == 0) ? 0 : calcCohensd(dMeanA, dMeanB, dPooledSD);
+
 			// Update the stats
 			oCohenDEffectSizeLogic.setCohenD(dCohend);
 			oCohenDEffectSizeLogic.setDiffRating(dCohend);
+		} else {
+			oCohenDEffectSizeLogic.sDiffRating = RATING_NOTAPPLICABLE;
 		}
+
 		// Add the result to statistics table
 		double dCohend = oCohenDEffectSizeLogic.getCohenD().doubleValue();
 		String sIsFailed = "false";

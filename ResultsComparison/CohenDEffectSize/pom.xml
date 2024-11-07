@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.rbourga.jmeter</groupId>
   <artifactId>jmeter-plugins-cohendeffectsize</artifactId>
-  <version>1.2.0</version>
+  <version>1.2.1</version>
   <properties>
   	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   	<maven.compiler.source>1.8</maven.compiler.source>
