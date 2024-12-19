@@ -9,8 +9,9 @@ import org.apache.jmeter.save.CSVSaveService;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import kg.apc.emulators.TestJMeterUtils;
 import com.github.rbourga.jmeter.common.TestResultsServices;
+
+import kg.apc.emulators.TestJMeterUtils;
 
 public class ApdexTest {
 

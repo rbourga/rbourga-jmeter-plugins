@@ -2,8 +2,9 @@ package com.github.rbourga.jmeter.common;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.math3.stat.StatUtils;
+import org.apache.commons.math4.legacy.stat.*;
 
 public class MathMoments {
 
