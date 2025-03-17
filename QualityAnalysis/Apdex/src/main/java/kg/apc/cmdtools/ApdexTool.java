@@ -93,8 +93,8 @@ public class ApdexTool extends AbstractCMDTool {
 			System.out.println("Results saved in " + htmlFilename);
 
       // Save Apdex results in an CSV file for import in Power BI tool later on
-			String htmlFilename = ApdexLogic.saveTableStatsAsCsv(sInFile);
-			System.out.println("Results saved in " + htmlFilename);
+			String csvFilename = ApdexLogic.saveTableStatsAsCsv(sInFile);
+			System.out.println("Results saved in " + csvFilename);
 		}
 		return iResult;
 	}
