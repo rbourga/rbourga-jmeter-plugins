@@ -99,7 +99,9 @@ public final class TukeyOutlierDetectorLogic {
 			fUpFenceMin = Double.MAX_VALUE;
 
 			// To avoid skewness brought by failed samplers, we calculate the upper fence on successful samplers only.
-			aLblRcdSuccess = aLblRcd.stream().filter(rcd -> rcd.get("success").equals("true"))
+			// We use equalsIgnoreCase as "true" can be in capital letters if the results have been exported from Excel
+			aLblRcdSuccess = aLblRcd.stream()
+					.filter(rcd -> "true".equalsIgnoreCase(rcd.get("success")))
 					.collect(Collectors.toList());
 			iInitSuccessLblCnt = aLblRcdSuccess.size();
 

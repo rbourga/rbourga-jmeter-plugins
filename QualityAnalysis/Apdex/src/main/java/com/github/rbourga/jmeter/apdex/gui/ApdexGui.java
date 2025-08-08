@@ -46,7 +46,7 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 	private static final long serialVersionUID = 1L;
 	private static final String PLUGIN_LABEL = "Apdex Score Calculator";
 	private static final String WIKIPAGE = "https://github.com/rbourga/rbourga-jmeter-plugins/wiki/APDEX-Score-Calculator";
-	private static final String[] EXTS = { ".jtl", ".csv", ".tsv" };
+	private static final String[] EXTS = { ".jtl", ".csv", ".tsv", ".txt" };
 	private static final String ACTION_CALCULATE = "calculate";
 	private static final String ACTION_SAVE = "save";
 

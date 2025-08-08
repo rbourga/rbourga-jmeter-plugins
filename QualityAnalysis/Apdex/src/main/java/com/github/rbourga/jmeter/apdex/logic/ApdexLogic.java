@@ -103,13 +103,14 @@ public final class ApdexLogic {
 			 * regardless of their time. So we must calculate Apdex only on the successful
 			 * samples.
 			 */
-			Stream<CSVRecord> oPassedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("true"));
+			// We use equalsIgnoreCase as "true" can be in capital letters if the results have been exported from Excel
+			Stream<CSVRecord> oPassedSamples = aRcd.stream().filter(rcd -> "true".equalsIgnoreCase(rcd.get("success")));
 			// Satisfied list of samples: 0 to T
 			Stream<CSVRecord> oSatisfiedSamples = oPassedSamples.filter(rcd -> Long.parseLong(rcd.get("elapsed")) <= lApdexTgtTholdMS);
 			long lSatisfiedCount = oSatisfiedSamples.count();
 			// Tolerating list of samples: T to F
 			// Reset the successful stream as a stream can only be used once
-			oPassedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("true"));
+			oPassedSamples = aRcd.stream().filter(rcd -> "true".equalsIgnoreCase(rcd.get("success")));
 			Stream<CSVRecord> oToleratingSamples = oPassedSamples.filter(rcd -> ((Long.parseLong(rcd.get("elapsed")) > lApdexTgtTholdMS)
 					&& ((Long.parseLong(rcd.get("elapsed")) < lApdexTolTholdMS))));
 			long lToleratingCount = oToleratingSamples.count();

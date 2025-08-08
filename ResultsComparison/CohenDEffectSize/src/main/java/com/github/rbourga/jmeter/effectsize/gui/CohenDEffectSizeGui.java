@@ -47,7 +47,7 @@ public class CohenDEffectSizeGui extends AbstractVisualizer implements ActionLis
 	private static final long serialVersionUID = 1L;
 	private static final String PLUGIN_LABEL = "Results Comparator";
 	private static final String WIKIPAGE = "https://github.com/rbourga/rbourga-jmeter-plugins/wiki/Results-Comparison";
-	private static final String[] EXTS = { ".jtl", ".csv", ".tsv" };
+	private static final String[] EXTS = { ".jtl", ".csv", ".tsv",".txt" };
 	private static final String ACTION_COMPARE = "compare";
 	private static final String ACTION_SAVE = "save";
 
