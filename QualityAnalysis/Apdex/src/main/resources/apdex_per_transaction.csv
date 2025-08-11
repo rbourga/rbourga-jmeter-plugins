@@ -1,0 +1,3 @@
+sample_name_or_regex,apdex_target_threshold_seconds,apdex_minimum_quality_level,comments
+HomePage,1.5,0.85,High traffic path
+Cart/.*,1.5,0.85,regex pattern to match multiple samplers

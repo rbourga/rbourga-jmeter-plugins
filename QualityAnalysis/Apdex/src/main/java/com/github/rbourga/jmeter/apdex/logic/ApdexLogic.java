@@ -3,11 +3,18 @@
  */
 package com.github.rbourga.jmeter.apdex.logic;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.apache.commons.csv.CSVRecord;
@@ -35,24 +42,46 @@ public final class ApdexLogic {
 					 */
 //					JMeterUtils.getResString("average"), // Average
 					JMeterUtils.getResString("aggregate_report_error%"), // # Error %
-					"Apdex Value", "Apdex Target (s)", // Target threshold
-					"Apdex Rating", "Small Group", // true if number of samples < 100
+					"Apdex Target (s)", // Target threshold
+					"Apdex Value",
+					"Apdex Min Score",
+					"Apdex Rating",
+					"Small Group", // true if number of samples < 100
 					"Failed" // true if value less than the specified threshold
 			}, new Class[] {
 					String.class, // Label
 					Integer.class, // # Samples
 //					Double.class,	// Average
 					Double.class, // # Error %
-					Double.class, // Apdex Value
 					Double.class, // Apdex Target
+					Double.class, // Apdex Value
+					Double.class, // Apdex Min score
 					String.class, // Apdex Rating
 					String.class, // Small Group
 					String.class // Failed
 			});
-	private static int PASSFAIL_TEST_COLNBR = 7; // Position of Failed column in the table
+	private static int PASSFAIL_TEST_COLNBR = 8; // Position of Failed column in the table
 
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
+	}
+	
+	private static class ApdexRule {
+		String sampleNamePattern;	// can be exact or regex
+		Pattern compiledPattern;	// precompiled regex for performance
+		Double targetSecs;
+		Double minScore;
+		
+		ApdexRule(String sampleNamePattern, Double targetSecs, Double minScore) {
+			this.sampleNamePattern = sampleNamePattern;
+			this.compiledPattern = Pattern.compile(sampleNamePattern);
+			this.targetSecs = targetSecs;
+			this.minScore = minScore;
+		}
+		
+		boolean apdexMatches(String label) {
+			return compiledPattern.matcher(label).matches();	// order in CSV determines priority
+		}
 	}
 
 	/*
@@ -73,30 +102,36 @@ public final class ApdexLogic {
 	/*
 	 * Computing method
 	 */
-	public static int computeApdexScore(String sFilepath, double dApdexTgtTholdSec, double dApdexAQL) {
-		// Load the data after getting the delimiter separator from current JMeter
-		// properties
+	public static int computeApdexScore(String sResultsFilepath, double dDefaultTargetSecs, double dDefaultMinScore, String sRulesFilepath) throws IOException {
+		// Load the test results after getting the delimiter separator from current JMeter properties
 		char cDelim = SampleSaveConfiguration.staticConfig().getDelimiter().charAt(0);
-		Map<String, List<CSVRecord>> rcdHashMap = FileServices.loadSamplesIntoHashMap(sFilepath, cDelim);
+		Map<String, List<CSVRecord>> rcdHashMap = FileServices.loadSamplesIntoHashMap(sResultsFilepath, cDelim);
 		if (rcdHashMap.isEmpty()) {
 			return -1; // Nothing loaded, so abort...
 		}
+		
+		// Load per-transaction config if it exists
+		List<ApdexRule> apdexRules = loadRules(sRulesFilepath);
 
 		// Clear any statistics from a previous analysis
 		pwrTblMdlStats.clearData();
 
-		// Format the threshold as per Apdex specs
-		dApdexTgtTholdSec = ApdexLogic.formatTgtTHold(dApdexTgtTholdSec);
-		BigDecimal bdApdexAQL = new BigDecimal(dApdexAQL);
-
-		long lApdexTgtTholdMS = (long) (dApdexTgtTholdSec * 1000); // Convert to ms as JMeter times are stored in ms
-		long lApdexTolTholdMS = 4 * lApdexTgtTholdMS; // Tolerate = 4xTarget, as per Apdex specs
 		int iFailedLblCnt = 0;
 		// Now, process the data points in natural order...
 		TreeMap<String, List<CSVRecord>> tmSortedRcd = new TreeMap<>(rcdHashMap);
 		for (String sLbl : tmSortedRcd.keySet()) {
 			List<CSVRecord> aRcd = tmSortedRcd.get(sLbl);
 			int iTotRcd = aRcd.size();
+			
+			// Get Apdex params
+			double[] apdexParams = getApdexParamsForLabel(sLbl, apdexRules, dDefaultTargetSecs, dDefaultMinScore);
+			double dApdexTarget = apdexParams[0];
+			double dApdexMinScore = apdexParams[1];
+			// Format the threshold as per Apdex specs
+			dApdexTarget = ApdexLogic.formatTgtTHold(dApdexTarget);
+			BigDecimal bdApdexAQL = new BigDecimal(dApdexMinScore);
+			long lApdexTgtTholdMS = (long) (dApdexTarget * 1000); // Convert to ms as JMeter times are stored in ms
+			long lApdexTolTholdMS = 4 * lApdexTgtTholdMS; // Tolerate = 4xTarget, as per Apdex specs
 
 			/*
 			 * As per Apdex specs, all server failures must be counted as frustrated
@@ -143,8 +178,9 @@ public final class ApdexLogic {
 					iTotRcd, // # Samples
 //					Long.valueOf((long) mathMoments.getMean()),	// Average
 					bdErrPctRnd.doubleValue(), // # Error %
+					dApdexTarget, // Apdex Target
 					bdApdexScoreRnd.doubleValue(), // Apdex Value
-					dApdexTgtTholdSec, // Apdex Target
+					bdApdexAQL.doubleValue(),	// min score
 					sApdexRating, // Apdex Rating
 					sIsSmallGroup, // shows a tick if number of samples < 100
 					sIsFailed }; // shows a tick if value less than the specified threshold
@@ -162,11 +198,11 @@ public final class ApdexLogic {
 		return sOutputFile;
 	}
 
-	public static String saveTableStatsAsHtml(String sFilePath, String sApdexAQL) {
+	public static String saveTableStatsAsHtml(String sFilePath) {
 		String sFileDirectoryName = FilenameUtils.getFullPath(sFilePath);
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_STATS + "html";
-		String sTableTitle = HTML_STATS_TITLE + " (Apdex Acceptable Quality Level = " + sApdexAQL + ")";
+		String sTableTitle = HTML_STATS_TITLE;
 		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
 		return sOutputFile;
 	}
@@ -207,5 +243,78 @@ public final class ApdexLogic {
 		}
 		return sRating;
 	}
+	
+    /**
+     * Load Apdex rules from CSV file with headers:
+     * sample_name_or_regex,apdex_target_threshold_seconds,apdex_minimum_quality_level,comments
+     * Blank target/minScore means "use default"
+     * CSV order defines match priority.
+     */
+	private static List<ApdexRule> loadRules(String csvFilePath) throws IOException {
+		List<ApdexRule> rules = new ArrayList<>();
+        File file = new File(csvFilePath);
+
+		if (FileServices.isFilenameEmpty(csvFilePath)) {
+			return rules;	// empty list
+		}
+		
+		try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String headerLine = br.readLine();
+
+            // Map column name -> index
+            String[] headers = headerLine.split(",", -1);
+            Map<String, Integer> headerMap = new HashMap<>();
+            for (int i = 0; i < headers.length; i++) {
+                headerMap.put(headers[i].trim().toLowerCase(), i);
+            }
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue; // skip empty lines
+                String[] parts = line.split(",", -1);
+
+                String pattern = parts[headerMap.get("sample_name_or_regex")].trim();
+                
+                // Parse targetSecs, fallback to -1 if blank or out of range
+                String targetStr = parts[headerMap.get("apdex_target_threshold_seconds")].trim();
+                Double targetSecs = null;
+                if (!targetStr.isEmpty()) {
+                	targetSecs = Double.parseDouble(targetStr);
+            		if (isTgtTHoldOutOfRange(targetSecs)) {
+            			targetSecs = null;
+            		}
+                }
+
+                // Parse minScore, fallback to null if blank or out of range
+                String minScoreStr = parts[headerMap.get("apdex_minimum_quality_level")].trim();
+                Double minScore = null;
+                if (!minScoreStr.isEmpty()) {
+                	minScore = Double.parseDouble(minScoreStr);
+            		if (isApdexMinScoreOutOfRange(minScore)) {
+            			minScore = null;
+            		}
+                }
+
+                rules.add(new ApdexRule(pattern, targetSecs, minScore));
+            }
+        }
+        return rules;
+    }
+	
+	  /**
+     * Find matching Apdex parameters for a given label, or fall back to defaults.
+     * First match in CSV wins.
+     */
+    private static double[] getApdexParamsForLabel(String label, List<ApdexRule> rules,
+                                                  double defaultTargetSecs, double defaultMinScore) {
+        for (ApdexRule rule : rules) {
+            if (rule.apdexMatches(label)) {
+                double target = (rule.targetSecs != null) ? rule.targetSecs : defaultTargetSecs;
+                double minScore = (rule.minScore != null) ? rule.minScore : defaultMinScore;
+                return new double[]{target, minScore};
+            }
+        }
+        return new double[]{defaultTargetSecs, defaultMinScore};
+    }
 
 }

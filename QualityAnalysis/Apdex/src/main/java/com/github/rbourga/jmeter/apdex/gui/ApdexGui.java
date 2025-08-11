@@ -6,6 +6,7 @@ package com.github.rbourga.jmeter.apdex.gui;
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Collection;
@@ -55,7 +56,8 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 	private JLabel jLblApdexAQL = new JLabel("Apdex Acceptable Quality Level [0..1] ");
 	private JFormattedTextField jFtxtFldApdexTgtTholdSec;
 	private JFormattedTextField jFTxtFldApdexAQL;
-	private FilePanel filePnl;
+	private FilePanel filePnlApdex;
+	private FilePanel filePnlResults;
 
 	// GUI constructor
 	public ApdexGui() {
@@ -96,8 +98,11 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 		jPnlApdexFail.add(jFTxtFldApdexAQL);
 		jPnlApdexFail.setBorder(BorderFactory.createTitledBorder("Apdex Failure Criteria Specification"));
 
+		// Panel for selection of ApdexPerTrxn file
+		filePnlApdex = new FilePanel("Apdex Per Transaction file (optional)", EXTS);
+
 		// Panel for selection of file
-		filePnl = new FilePanel("Read results from file and calculate Apdex & Coeff Var scores", EXTS);
+		filePnlResults = new FilePanel("Read results from file and calculate Apdex scores", EXTS);
 
 		// Calculate button
 		JPanel jPnlCalc = new JPanel();
@@ -132,7 +137,8 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 		// Finally, assemble all panels
 		vrtPnl.add(jPnlApdex);
 		vrtPnl.add(jPnlApdexFail);
-		vrtPnl.add(filePnl);
+		vrtPnl.add(filePnlApdex);
+		vrtPnl.add(filePnlResults);
 		vrtPnl.add(jPnlCalc);
 		vrtPnl.add(jScrollPane);
 		add(vrtPnl, BorderLayout.CENTER);
@@ -150,7 +156,12 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 
 		switch (sActionCmd) {
 		case ACTION_CALCULATE:
-			actionCalc();
+			try {
+				actionCalc();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			break;
 
 		case ACTION_SAVE:
@@ -159,7 +170,7 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 						"Save Table Data error");
 				return;
 			}
-			String sInFile = filePnl.getFilename();
+			String sInFile = filePnlResults.getFilename();
 			String csvFilename = ApdexLogic.saveTableStatsAsCsv(sInFile);
 			GuiPackage.showInfoMessage("Data saved to " + csvFilename, "Save Table Data");
 			break;
@@ -207,7 +218,7 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 	/*
 	 * Private methods
 	 */
-	private void actionCalc() {
+	private void actionCalc() throws IOException {
 		// Parse target threshold
 		double fApdexTgtTholdSec = ((Number) jFtxtFldApdexTgtTholdSec.getValue()).doubleValue();
 		if (ApdexLogic.isTgtTHoldOutOfRange(fApdexTgtTholdSec)) {
@@ -224,25 +235,40 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 			return;
 		}
 
-		// Parse filename
-		String sInFile = filePnl.getFilename();
-		if (FileServices.isFilenameEmpty(sInFile)) {
-			GuiPackage.showErrorMessage("File name missing - please enter a filename.", "Input file error");
+		// Parse Apdex filename
+		String sApdexFile = filePnlApdex.getFilename();
+		if (!(FileServices.isFilenameEmpty(sApdexFile))) {
+			if (!(FileServices.isFileExist(sApdexFile))) {
+				GuiPackage.showErrorMessage("Cannot find ApdexPerTransaction file - please enter a valid filename.", "ApdexPerTransaction file error");
+				return;
+			}
+			if (!(FileServices.isFileValid(sApdexFile))) {
+				GuiPackage.showErrorMessage(
+					"ApdexPerTransaction file is empty or contains invalid data - please enter a valid ApdexPerTransaction file.",
+					"ApdexPerTransaction file error");
+				return;
+			}
+		}
+
+		// Parse results filename
+		String sResultsFile = filePnlResults.getFilename();
+		if (FileServices.isFilenameEmpty(sResultsFile)) {
+			GuiPackage.showErrorMessage("Results file name missing - please enter a filename.", "Results file error");
 			return;
 		}
-		if (!(FileServices.isFileExist(sInFile))) {
-			GuiPackage.showErrorMessage("Cannot find input file - please enter a valid filename.", "Input file error");
+		if (!(FileServices.isFileExist(sResultsFile))) {
+			GuiPackage.showErrorMessage("Cannot find Results file - please enter a valid filename.", "Results file error");
 			return;
 		}
-		if (!(FileServices.isFileValid(sInFile))) {
+		if (!(FileServices.isFileValid(sResultsFile))) {
 			GuiPackage.showErrorMessage(
-					"Input file is empty or contains invalid data - please enter a valid results file.",
-					"Input file error");
+					"Results file is empty or contains invalid data - please enter a valid Results file.",
+					"Results file error");
 			return;
 		}
 
 		// Now, process the data
-		int iResult = ApdexLogic.computeApdexScore(sInFile, fApdexTgtTholdSec, fApdexAQL);
+		int iResult = ApdexLogic.computeApdexScore(sResultsFile, fApdexTgtTholdSec, fApdexAQL, sApdexFile);
 		if (iResult == -1) {
 			GuiPackage.showErrorMessage("No samplers found in results file - please check your file.",
 					"Input file error");
