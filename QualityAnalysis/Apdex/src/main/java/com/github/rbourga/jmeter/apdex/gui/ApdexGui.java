@@ -28,6 +28,7 @@ import org.apache.jmeter.samplers.Clearable;
 import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.util.JMeterUtils;
 import org.apache.jmeter.visualizers.gui.AbstractVisualizer;
+import org.apache.jorphan.gui.MinMaxLongRenderer;
 import org.apache.jorphan.gui.NumberRenderer;
 import org.apache.jorphan.gui.RendererUtils;
 
@@ -117,7 +118,7 @@ public class ApdexGui extends AbstractVisualizer implements ActionListener, Clea
 		jTblStats.setAutoCreateRowSorter(true);
 		RendererUtils.applyRenderers(jTblStats, new TableCellRenderer[] { null, // Label
 				null, // # Samples
-//				new MinMaxLongRenderer("#0"), // Average
+				new MinMaxLongRenderer("#0"), // Average
 				new NumberRenderer("#0.00%"), // Error %
 				new NumberRenderer("0.00"), // Apdex score
 				new NumberRenderer("0.00"), // Target threshold

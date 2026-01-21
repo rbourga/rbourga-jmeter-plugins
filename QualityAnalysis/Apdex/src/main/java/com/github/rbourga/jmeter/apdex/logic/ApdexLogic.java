@@ -36,11 +36,7 @@ public final class ApdexLogic {
 			new String[] { 
 					JMeterUtils.getResString("sampler label"), // Label
 					JMeterUtils.getResString("aggregate_report_count"), // # Samples
-					/*
-					 * Hiding Average as it should be calculated only on successful results and
-					 * without outliers whereas Apdex requires the full set of results.
-					 */
-//					JMeterUtils.getResString("average"), // Average
+					JMeterUtils.getResString("average"), // Average
 					JMeterUtils.getResString("aggregate_report_error%"), // # Error %
 					"Apdex Target (s)", // Target threshold
 					"Apdex Value",
@@ -51,7 +47,7 @@ public final class ApdexLogic {
 			}, new Class[] {
 					String.class, // Label
 					Integer.class, // # Samples
-//					Double.class,	// Average
+					Double.class,	// Average
 					Double.class, // # Error %
 					Double.class, // Apdex Target
 					Double.class, // Apdex Value
@@ -60,7 +56,7 @@ public final class ApdexLogic {
 					String.class, // Small Group
 					String.class // Failed
 			});
-	private static int PASSFAIL_TEST_COLNBR = 8; // Position of Failed column in the table
+	private static int PASSFAIL_TEST_COLNBR = 9; // Position of Failed column in the table
 
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
@@ -140,7 +136,12 @@ public final class ApdexLogic {
 			 */
 			// We use equalsIgnoreCase as "true" can be in capital letters if the results have been exported from Excel
 			Stream<CSVRecord> oPassedSamples = aRcd.stream().filter(rcd -> "true".equalsIgnoreCase(rcd.get("success")));
+			// Global average
+			double dMean = oPassedSamples.mapToLong(rcd -> Long.parseLong(rcd.get("elapsed"))).average().orElse(0);
+
 			// Satisfied list of samples: 0 to T
+			// Reset the successful stream as a stream can only be used once
+			oPassedSamples = aRcd.stream().filter(rcd -> "true".equalsIgnoreCase(rcd.get("success")));
 			Stream<CSVRecord> oSatisfiedSamples = oPassedSamples.filter(rcd -> Long.parseLong(rcd.get("elapsed")) <= lApdexTgtTholdMS);
 			long lSatisfiedCount = oSatisfiedSamples.count();
 			// Tolerating list of samples: T to F
@@ -176,7 +177,7 @@ public final class ApdexLogic {
 			Object[] oArrayRowData = {
 					sLbl, // Label
 					iTotRcd, // # Samples
-//					Long.valueOf((long) mathMoments.getMean()),	// Average
+					Long.valueOf((long) dMean),	// Average
 					bdErrPctRnd.doubleValue(), // # Error %
 					dApdexTarget, // Apdex Target
 					bdApdexScoreRnd.doubleValue(), // Apdex Value
