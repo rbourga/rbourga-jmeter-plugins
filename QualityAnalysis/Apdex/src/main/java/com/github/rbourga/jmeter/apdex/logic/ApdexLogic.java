@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FilenameUtils;
@@ -87,10 +86,6 @@ public final class ApdexLogic {
 		return dValue < 0 || dValue > 1;
 	}
 
-	public static boolean isCoVPctOutOfRange(double fCoVALPct) {
-		return fCoVALPct < 0;
-	}
-
 	public static boolean isTgtTHoldOutOfRange(double dValue) {
 		return dValue < 0.1;
 	}
@@ -133,23 +128,38 @@ public final class ApdexLogic {
 			 * As per Apdex specs, all server failures must be counted as frustrated
 			 * regardless of their time. So we must calculate Apdex only on the successful
 			 * samples.
+			 * 
+			 * Optimized: Single pass through data to calculate all metrics
+			 * We use equalsIgnoreCase as "true" can be in capital letters if the results have been exported from Excel
 			 */
-			// We use equalsIgnoreCase as "true" can be in capital letters if the results have been exported from Excel
-			Stream<CSVRecord> oPassedSamples = aRcd.stream().filter(rcd -> "true".equalsIgnoreCase(rcd.get("success")));
-			// Global average
-			double dMean = oPassedSamples.mapToLong(rcd -> Long.parseLong(rcd.get("elapsed"))).average().orElse(0);
+			long lSatisfiedCount = 0;
+			long lToleratingCount = 0;
+			long lFailedCount = 0;
+			long lSuccessfulTotalElapsed = 0;
+			long lSuccessfulCount = 0;
 
-			// Satisfied list of samples: 0 to T
-			// Reset the successful stream as a stream can only be used once
-			oPassedSamples = aRcd.stream().filter(rcd -> "true".equalsIgnoreCase(rcd.get("success")));
-			Stream<CSVRecord> oSatisfiedSamples = oPassedSamples.filter(rcd -> Long.parseLong(rcd.get("elapsed")) <= lApdexTgtTholdMS);
-			long lSatisfiedCount = oSatisfiedSamples.count();
-			// Tolerating list of samples: T to F
-			// Reset the successful stream as a stream can only be used once
-			oPassedSamples = aRcd.stream().filter(rcd -> "true".equalsIgnoreCase(rcd.get("success")));
-			Stream<CSVRecord> oToleratingSamples = oPassedSamples.filter(rcd -> ((Long.parseLong(rcd.get("elapsed")) > lApdexTgtTholdMS)
-					&& ((Long.parseLong(rcd.get("elapsed")) < lApdexTolTholdMS))));
-			long lToleratingCount = oToleratingSamples.count();
+			// Single pass through all records to categorize and count
+			for (CSVRecord rcd : aRcd) {
+				boolean isSuccess = "true".equalsIgnoreCase(rcd.get("success"));
+				
+				if (isSuccess) {
+					lSuccessfulCount++;
+					long elapsedMs = Long.parseLong(rcd.get("elapsed"));
+					lSuccessfulTotalElapsed += elapsedMs;
+					
+					// Categorize by Apdex thresholds
+					if (elapsedMs <= lApdexTgtTholdMS) {
+						lSatisfiedCount++;
+					} else if (elapsedMs < lApdexTolTholdMS) {
+						lToleratingCount++;
+					}
+				} else {
+					lFailedCount++;
+				}
+			}
+
+			// Calculate mean from successful samples
+			double dMean = (lSuccessfulCount > 0) ? (double) lSuccessfulTotalElapsed / lSuccessfulCount : 0;
 
 			// Now compute the Apdex value
 			BigDecimal bdApdexScore = new BigDecimal((lSatisfiedCount + (lToleratingCount / 2.0)) / iTotRcd);
@@ -159,8 +169,6 @@ public final class ApdexLogic {
 			String sApdexRating = setApdexRating(bdApdexScoreRnd);
 
 			// ErrPct formatting: round to 4 decimal places
-			Stream<CSVRecord> oFailedSamples = aRcd.stream().filter(rcd -> rcd.get("success").equals("false"));
-			long lFailedCount = oFailedSamples.count();
 			BigDecimal bdErrPct = new BigDecimal((double) lFailedCount / iTotRcd);
 			BigDecimal bdErrPctRnd = bdErrPct.setScale(4, RoundingMode.HALF_UP);
 

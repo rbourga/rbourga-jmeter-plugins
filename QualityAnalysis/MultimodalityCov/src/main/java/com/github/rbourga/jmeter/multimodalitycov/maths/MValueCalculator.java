@@ -14,6 +14,19 @@ public class MValueCalculator {
 	private double dMvalue;
 	private int[] iBinsArray; // Array to store the histogram bins
 
+	// Constants
+	/**
+	 * Scott's normal reference rule uses a constant factor (3.5) in the bin width
+	 * calculation: binWidth = 3.5 * sigma / n^(1/3).
+	 */
+	private static final double SCOTT_FACTOR = 3.5;
+
+	/**
+	 * Freedman–Diaconis rule uses a factor of 2 in bin width calculation:
+	 * binWidth = 2 * IQR / n^(1/3).
+	 */
+	private static final double FREEDMAN_DIACONIS_FACTOR = 2.0;
+
 	public MValueCalculator(String sBinRule, int iBinSize, double dMvalue, int[] iBinsArray) {
 		this.sBinRuleName = sBinRule;
 		this.iBinSize = iBinSize;	// we use an int as we are counting discrete values (i.e., response times in ms)
@@ -57,14 +70,14 @@ public class MValueCalculator {
 				int iCurrBinSize;
 				String sCurrRule;
 				if (i == 0) {
-					// 1st try: use of Scott's formula
+					// 1st try: use of Scott's formula (uses SCOTT_FACTOR constant)
 					sCurrRule = "Scott";
-					iCurrBinSize = (int) Math.ceil(3.5 * mathMo.getStdDev() / Math.cbrt(iRcdNbr));
+					iCurrBinSize = (int) Math.ceil(SCOTT_FACTOR * mathMo.getStdDev() / Math.cbrt(iRcdNbr));
 				} else {
-					// 2nd try: use of Freedman–Diaconis rule
+					// 2nd try: use of Freedman–Diaconis rule (uses FREEDMAN_DIACONIS_FACTOR constant)
 					sCurrRule = "Freedman-Diaconis";
 					double dIQR = mathMo.getQ3() - mathMo.getQ1();
-					iCurrBinSize = (int) Math.ceil(2 * dIQR / Math.cbrt(iRcdNbr));
+					iCurrBinSize = (int) Math.ceil(FREEDMAN_DIACONIS_FACTOR * dIQR / Math.cbrt(iRcdNbr));
 				}
 
 				double dCurrM = 0;

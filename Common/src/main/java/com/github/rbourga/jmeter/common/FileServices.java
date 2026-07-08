@@ -43,7 +43,6 @@ public final class FileServices {
 	public static boolean isFileValid(String sFilePath) {
 		try (BufferedReader brRdr = new BufferedReader(new FileReader(sFilePath))) {
 			String sLine = brRdr.readLine();
-			brRdr.close();
 			return sLine != null && !sLine.isEmpty(); // Check if the first line is not empty
 		} catch (IOException e) {
 			e.printStackTrace();
