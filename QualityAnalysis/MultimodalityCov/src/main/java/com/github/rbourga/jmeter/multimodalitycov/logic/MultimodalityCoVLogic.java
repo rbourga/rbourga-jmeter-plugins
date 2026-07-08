@@ -151,7 +151,7 @@ public final class MultimodalityCoVLogic {
 
 			// Tag the pass/fail status
 			String sIsFailed = "false";
-			if (sIsMultimodal == "true" || sIsCoVfailed == "true") {
+			if ("true".equals(sIsMultimodal) || "true".equals(sIsCoVfailed)) {
 				sIsFailed = "true";
 				iFailedLblCnt++;
 			}
