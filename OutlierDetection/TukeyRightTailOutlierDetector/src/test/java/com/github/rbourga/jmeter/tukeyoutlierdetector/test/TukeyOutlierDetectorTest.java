@@ -88,6 +88,18 @@ public class TukeyOutlierDetectorTest {
 			// Move the time for the next result
 			lStart = lEnd;
 		}
+		
+		// Creation of 100 failed results with random times between 100 and 300ms
+		lStart = lInitial;
+		for (int i = 0; i < 100; i++) {
+			lEnd = lStart + oRandom.nextInt(100) + 200;
+			oSampleResult = SampleResult.createTestSample(lStart, lEnd);
+			oSampleResult.setSampleLabel("AllFailed");
+			oSampleEvent = TestResultsServices.resultToEvent(oSampleResult, false);
+			oPrintWriter.println(CSVSaveService.resultToDelimitedString(oSampleEvent));
+			// Move the time for the next result
+			lStart = lEnd;
+		}
 
 		oPrintWriter.close();
 		System.out.println("*****");

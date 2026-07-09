@@ -70,9 +70,9 @@ public final class TukeyOutlierDetectorLogic {
 		/*
 		 * Will remove only upper outliers (which are bigger than the upper boundary).
 		 */
-		int iInitLblCnt, iInitSuccessLblCnt;
+		int iInitLblCnt, iInitSetLblCnt;
 		double fUpFenceMin;
-		List<CSVRecord> mergedOutliers = null, mergedClean = null, mergedSuccess = null, aLblRcdSuccess = null;
+		List<CSVRecord> mergedOutliers = null, mergedClean = null, mergedSuccess = null, statsSet = null;
 
 		double fK = fTukeyK;
 		BigDecimal bdMaxRemPct = new BigDecimal(fMaxRemPct);
@@ -100,20 +100,33 @@ public final class TukeyOutlierDetectorLogic {
 
 			// To avoid skewness brought by failed samplers, we calculate the upper fence on successful samplers only.
 			// We use equalsIgnoreCase as "true" can be in capital letters if the results have been exported from Excel
-			aLblRcdSuccess = aLblRcd.stream()
+			statsSet = aLblRcd.stream()
 					.filter(rcd -> "true".equalsIgnoreCase(rcd.get("success")))
 					.collect(Collectors.toList());
-			iInitSuccessLblCnt = aLblRcdSuccess.size();
+			int origSuccessCount = statsSet.size();   // save original success count for reporting
+			iInitSetLblCnt = origSuccessCount;
 
-			// Get initial average value
-			double dAvg = MathMoments.crteMomentsFromRecordsList(aLblRcdSuccess).getMean();
+			// If no successful samplers, fall back to the failed set and process it instead
+			if (origSuccessCount == 0) {
+				statsSet = aLblRcd.stream()
+			            .filter(rcd -> "false".equalsIgnoreCase(rcd.get("success")))
+			            .collect(Collectors.toList());
+			   iInitSetLblCnt = statsSet.size();
+			}
 
-			// Only look for outliers if there are at least four items to compare
-			if (iInitSuccessLblCnt > 3) {
+			// Compute the average from the set we're using for fence computation (successful or fallback failed)
+			double dAvg = 0.0;
+		    MathMoments mathMomentsForAvg = MathMoments.crteMomentsFromRecordsList(statsSet);
+		    if (mathMomentsForAvg != null) {
+		        dAvg = mathMomentsForAvg.getMean();
+			}
+			
+		    // Only look for outliers if there are at least four items to compare
+			if (iInitSetLblCnt > 3) {
 				// Initialize k
 				if (fTukeyK == 0) {
 					// Use Carling's formulae and round to 2 decimal places
-					fK = ((17.63 * iInitSuccessLblCnt) - 23.64) / ((7.74 * iInitSuccessLblCnt) - 3.71);
+					fK = ((17.63 * iInitSetLblCnt) - 23.64) / ((7.74 * iInitSetLblCnt) - 3.71);
 					String sKrounded = df2Decimals.format(fK);
 					// Convert value back to double
 					fK = Double.parseDouble(sKrounded);
@@ -125,7 +138,7 @@ public final class TukeyOutlierDetectorLogic {
 				boolean bIsUpperRemoved;
 				do {
 					// Update the stats on the series and get the new upper fence
-					MathMoments mathMoments = MathMoments.crteMomentsFromRecordsList(aLblRcdSuccess);
+					MathMoments mathMoments = MathMoments.crteMomentsFromRecordsList(statsSet);
 					fUpFence = getUpprFence(mathMoments, fK);
 					// Save the most severe limit for the report
 					fUpFenceMin = Math.min(fUpFence, fUpFenceMin);
@@ -144,7 +157,7 @@ public final class TukeyOutlierDetectorLogic {
 						aLblRcd = aLblRcd.stream()
 								.filter(rcd -> Double.parseDouble(rcd.get("elapsed")) <= fUpFenceFinal)
 								.collect(Collectors.toList());
-						aLblRcdSuccess = aLblRcdSuccess.stream()
+						statsSet = statsSet.stream()
 								.filter(rcd -> Double.parseDouble(rcd.get("elapsed")) <= fUpFenceFinal)
 								.collect(Collectors.toList());
 						bIsUpperRemoved = true;
@@ -153,18 +166,25 @@ public final class TukeyOutlierDetectorLogic {
 
 				// Outliers removed, save the new cleansed lists
 				mergedClean = addCSVList2To1(mergedClean, aLblRcd);
-				mergedSuccess = addCSVList2To1(mergedSuccess, aLblRcdSuccess);
+				if (origSuccessCount != 0) {
+				    mergedSuccess = addCSVList2To1(mergedSuccess, statsSet);
+				}
 			} else {
 				// No outliers removed because not enough samples: just save those samples
 				mergedClean = addCSVList2To1(mergedClean, aLblRcd);
-				mergedSuccess = addCSVList2To1(mergedSuccess, aLblRcdSuccess);
+				if (origSuccessCount != 0) {
+				    mergedSuccess = addCSVList2To1(mergedSuccess, statsSet);
+				}
 			}
 
 			// Save the results in the table
 			String sIsSmallSuccessGroup = "false";
-			if (aLblRcdSuccess.size() < 100) {
-				sIsSmallSuccessGroup = "true";
+			if (origSuccessCount == 0) {
+			    sIsSmallSuccessGroup = "na"; // so we don't label a failed-only sampler as "small success" based on the failed fallback list
+			} else if (statsSet.size() < 100) {
+			    sIsSmallSuccessGroup = "true";
 			}
+			
 			int iUpprOutlierCnt = iInitLblCnt - aLblRcd.size();
 			BigDecimal bdUpprOutlierPct = (iInitLblCnt == 0) ? new BigDecimal(0)
 					: new BigDecimal((double) iUpprOutlierCnt / (double) iInitLblCnt);
@@ -175,7 +195,7 @@ public final class TukeyOutlierDetectorLogic {
 				sIsFailed = "true";
 				iFailedLblCnt++;
 			}
-			
+
 			// Update the statistics table
 			Object[] oArrayRowData = {
 					sLbl, // Label
@@ -195,9 +215,11 @@ public final class TukeyOutlierDetectorLogic {
 		// Save the cleansed results in a file for post statistics
 		String sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_NO_UP_OUTLIERS + sFileExtension;
 		FileServices.saveCSVRecsToFile(sOutputFile, mergedClean, cDelim);
-		// Save the successful cleansed results in a file for post statistics
-		sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_SUCCESS_NO_UP_OUTLIERS + sFileExtension;
-		FileServices.saveCSVRecsToFile(sOutputFile, mergedSuccess, cDelim);
+		// Save the successful cleansed results in a file for post statistics (only if we have success rows)
+		if (mergedSuccess != null && !mergedSuccess.isEmpty()) {
+		    sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_SUCCESS_NO_UP_OUTLIERS + sFileExtension;
+		    FileServices.saveCSVRecsToFile(sOutputFile, mergedSuccess, cDelim);
+		}
 		// Save the outliers in a separate file for post analysis
 		if (mergedOutliers != null) {
 			sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_UP_OUTLIERS + sFileExtension;
