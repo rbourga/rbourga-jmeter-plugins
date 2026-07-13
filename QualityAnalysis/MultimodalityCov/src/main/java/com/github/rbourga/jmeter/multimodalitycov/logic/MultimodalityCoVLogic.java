@@ -25,6 +25,9 @@ public final class MultimodalityCoVLogic {
 	private static String HTML_STATS_TITLE = "Modality & Coefficient of Variation Results";
 	private static String SUFFIX_STATS = "_ModalityCoV.";
 
+	/** Default minimum bin size (ms) used when none provided */
+	public static final int DEFAULT_MIN_BIN_SIZE = 100;
+
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
 	private static PowerTableModel pwrTblMdlStats = new PowerTableModel(
@@ -94,11 +97,15 @@ public final class MultimodalityCoVLogic {
 		return fCoVALPct < 0;
 	}
 
-	public static boolean isMvaleTHoldOutOfRange(double dValue) {
+	public static boolean isMvalueTHoldOutOfRange(double dValue) {
 		return dValue < 0.1;
 	}
 
-	public static int computeMvalueCoV(String sFilepath, double dMvalueThold, double dCoVALPct) {
+	public static boolean isMinBinSizeOutOfRange(int iMinBinSize) {
+		return iMinBinSize <= 0;
+	}
+
+	public static int computeMvalueCoV(String sFilepath, double dMvalueThold, double dCoVALPct, int iMinBinSize) {
 		// Load the data after getting the delimiter separator from current JMeter
 		// properties
 		char cDelim = SampleSaveConfiguration.staticConfig().getDelimiter().charAt(0);
@@ -141,8 +148,11 @@ public final class MultimodalityCoVLogic {
 			BigDecimal bdMvalue = new BigDecimal(mValueCalculator.getMvalue());
 			BigDecimal bdMvalueRnd = bdMvalue.setScale(1, RoundingMode.HALF_UP);
 			// Check if the sample is multimodal
+			// If bin size is less than minimum, mark as "na" (not applicable for modality test)
 			String sIsMultimodal = "false";
-			if (bdMvalueRnd.compareTo(bdMvalueThold) != -1) {
+			if (mValueCalculator.getBinSize() < iMinBinSize) {
+				sIsMultimodal = "na";
+			} else if (bdMvalueRnd.compareTo(bdMvalueThold) != -1) {
 				sIsMultimodal = "true";
 			}
 

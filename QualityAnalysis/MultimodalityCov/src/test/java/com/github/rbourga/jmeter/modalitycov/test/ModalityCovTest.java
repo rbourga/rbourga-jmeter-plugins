@@ -53,14 +53,28 @@ public class ModalityCovTest {
 			lStart = lEnd;
 		}
 
-		// Creation of 100 results following a Gaussian distribution centered on 1s
+		// Creation of 100 results following a Gaussian distribution centered on 50ms
 		lStart = lInitial;
-		double dMean = 1000.0;
-		double dStdDev = 100.0;
+		double dMean = 50.0;
+		double dStdDev = 20.0;
 		for (int i = 0; i < 100; i++) {
 			lEnd = (long) (lStart + dMean + dStdDev * oRandom.nextGaussian());
 			oSampleResult = SampleResult.createTestSample(lStart, lEnd);
-			oSampleResult.setSampleLabel("Unimodal");
+			oSampleResult.setSampleLabel("Unimodal_50ms");
+			oSampleEvent = TestResultsServices.resultToEvent(oSampleResult, true);
+			oPrintWriter.println(CSVSaveService.resultToDelimitedString(oSampleEvent));
+			// Move the time for the next result 
+			lStart = lEnd;
+		}
+
+		// Creation of 100 results following a Gaussian distribution centered on 1s
+		lStart = lInitial;
+		dMean = 1000.0;
+		dStdDev = 100.0;
+		for (int i = 0; i < 100; i++) {
+			lEnd = (long) (lStart + dMean + dStdDev * oRandom.nextGaussian());
+			oSampleResult = SampleResult.createTestSample(lStart, lEnd);
+			oSampleResult.setSampleLabel("Unimodal_1s");
 			oSampleEvent = TestResultsServices.resultToEvent(oSampleResult, true);
 			oPrintWriter.println(CSVSaveService.resultToDelimitedString(oSampleEvent));
 			// Move the time for the next result 

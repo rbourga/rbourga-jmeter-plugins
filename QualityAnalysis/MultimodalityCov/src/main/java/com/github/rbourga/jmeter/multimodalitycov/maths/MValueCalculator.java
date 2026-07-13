@@ -61,11 +61,17 @@ public class MValueCalculator {
 		String sBinRule = null;
 
 		/*
-		 * We calculate the mvalue using 2 bin rules and keep the largest mvalue found.
+		 * We calculate bin sizes using 2 bin rules and use the one that produces
+		 * the largest bin size. This reduces sensitivity to small variations and false
+		 * positives. The MIN_BIN_SIZE filter in MultimodalityCoVLogic will mark as "na"
+		 * any results with insufficient bin size.
 		 * See https://en.wikipedia.org/wiki/Histogram
 		 */
 		if (mathMo.getStdDev() != 0) {
 			int iRcdNbr = listRcd.size();
+			int iMaxBinSize = 0;
+			String sMaxBinRule = null;
+
 			for (int i = 0; i < 2; i++) {
 				int iCurrBinSize;
 				String sCurrRule;
@@ -80,36 +86,34 @@ public class MValueCalculator {
 					iCurrBinSize = (int) Math.ceil(FREEDMAN_DIACONIS_FACTOR * dIQR / Math.cbrt(iRcdNbr));
 				}
 
-				double dCurrM = 0;
-				int[] currHistogram = null;
-				if (iCurrBinSize != 0) {
-					// Build the histogram
-					currHistogram = buildHistogram(listRcd, iCurrBinSize, mathMo);
-
-					// Now calculate the mvalue
-					// See formula at https://www.brendangregg.com/FrequencyTrails/modes.html
-					// 1. Find the maximum frequency
-					int iMaxFrequency = 0;
-					for (int iBin : currHistogram) {
-						if (iBin > iMaxFrequency) {
-							iMaxFrequency = iBin;
-						}
-					}
-					// 2. Get mvalue
-					double dSumOfAbsoluteDifferences = 0;
-					for (int iH = 1; iH < currHistogram.length; iH++) {
-						dSumOfAbsoluteDifferences += Math.abs(currHistogram[iH] - currHistogram[iH - 1]);
-					}
-					dCurrM = iMaxFrequency == 0 ? 0 : dSumOfAbsoluteDifferences * (1.0 / iMaxFrequency);
+				// Keep track of the formula that produces the largest bin size
+				if (iCurrBinSize > iMaxBinSize) {
+					iMaxBinSize = iCurrBinSize;
+					sMaxBinRule = sCurrRule;
 				}
+			}
 
-				// If mValue is larger, then save this try for the reporting
-				if (dCurrM > dMvalue) {
-					dMvalue = dCurrM;
-					sBinRule = sCurrRule;
-					iBinSize = iCurrBinSize;
-					histogram = currHistogram;
+			// Use the bin size from the formula that produced the largest bin size
+			if (iMaxBinSize != 0) {
+				iBinSize = iMaxBinSize;
+				sBinRule = sMaxBinRule;
+				histogram = buildHistogram(listRcd, iBinSize, mathMo);
+
+				// Now calculate the mvalue using this bin size
+				// See formula at https://www.brendangregg.com/FrequencyTrails/modes.html
+				// 1. Find the maximum frequency
+				int iMaxFrequency = 0;
+				for (int iBin : histogram) {
+					if (iBin > iMaxFrequency) {
+						iMaxFrequency = iBin;
+					}
 				}
+				// 2. Get mvalue
+				double dSumOfAbsoluteDifferences = 0;
+				for (int iH = 1; iH < histogram.length; iH++) {
+					dSumOfAbsoluteDifferences += Math.abs(histogram[iH] - histogram[iH - 1]);
+				}
+				dMvalue = iMaxFrequency == 0 ? 0 : dSumOfAbsoluteDifferences * (1.0 / iMaxFrequency);
 			}
 		}
 		return new MValueCalculator(sBinRule, iBinSize, dMvalue, histogram);

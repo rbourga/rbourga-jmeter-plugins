@@ -69,8 +69,10 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 	// Objects for the UI Panels
 	private JLabel jLblMvalueThold = new JLabel("MValue Threshold ");
 	private JLabel jLblCoVAL = new JLabel("Coefficient of Variation Acceptable Limit (%) ");
+	private JLabel jLblMinBinSize = new JLabel("Minimum Bin Size (ms) ");
 	private JFormattedTextField jFtxtFldMvalueThold;
 	private JFormattedTextField jFTxtFldCoVAL;
+	private JFormattedTextField jFtxtFldMinBinSize;
 	private FilePanel filePnl;
 
 	// Objects for graph
@@ -118,6 +120,17 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		jPnlCoVFail
 				.setBorder(BorderFactory.createTitledBorder("Coefficient of Variation Failure Criteria Specification"));
 
+		// Panel for Minimum Bin Size
+		JPanel jPnlMinBinSize = new JPanel(new BorderLayout());
+		NumberFormat nbrFIntOnly = NumberFormat.getNumberInstance();
+		nbrFIntOnly.setMaximumFractionDigits(0);
+		jPnlMinBinSize.add(jLblMinBinSize, BorderLayout.WEST);
+		jFtxtFldMinBinSize = new JFormattedTextField(nbrFIntOnly);
+		jFtxtFldMinBinSize.setValue(MultimodalityCoVLogic.DEFAULT_MIN_BIN_SIZE); // default
+		jFtxtFldMinBinSize.setColumns(5);
+		jPnlMinBinSize.add(jFtxtFldMinBinSize);
+		jPnlMinBinSize.setBorder(BorderFactory.createTitledBorder("Minimum Bin Size for Modality Test"));
+
 		// Panel for selection of file
 		filePnl = new FilePanel("Read results from file and calculate Modality & Coeff Var scores", EXTS);
 
@@ -153,6 +166,7 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 
 		// Finally, assemble all panels
 		vrtPnl.add(jPnlMvalue);
+		vrtPnl.add(jPnlMinBinSize);
 		vrtPnl.add(jPnlCoVFail);
 		vrtPnl.add(filePnl);
 		vrtPnl.add(jPnlCalc);
@@ -238,7 +252,7 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 	private void actionCalc() {
 		// Parse mValue threshold
 		double fMvalueThold = ((Number) jFtxtFldMvalueThold.getValue()).doubleValue();
-		if (MultimodalityCoVLogic.isMvaleTHoldOutOfRange(fMvalueThold)) {
+		if (MultimodalityCoVLogic.isMvalueTHoldOutOfRange(fMvalueThold)) {
 			GuiPackage.showErrorMessage("Please enter an MValue threshold equal to or greater than 0.1.",
 					"MValue Threshold Setting error");
 			return;
@@ -249,6 +263,14 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		if (MultimodalityCoVLogic.isCoVPctOutOfRange(fCoVALPct)) {
 			GuiPackage.showErrorMessage("Please enter a maximum Coefficent of Variation value >= 0.",
 					"Coefficient of Variation Setting error");
+			return;
+		}
+
+		// Parse minimum bin size
+		int iMinBinSize = ((Number) jFtxtFldMinBinSize.getValue()).intValue();
+		if (MultimodalityCoVLogic.isMinBinSizeOutOfRange(iMinBinSize)) {
+			GuiPackage.showErrorMessage("Please enter a minimum bin size greater than 0.",
+					"Minimum Bin Size Setting error");
 			return;
 		}
 
@@ -270,7 +292,7 @@ public class MultimodalityCoVGui extends AbstractVisualizer implements ActionLis
 		}
 
 		// Now, process the data
-		int iResult = MultimodalityCoVLogic.computeMvalueCoV(sInFile, fMvalueThold, fCoVALPct);
+		int iResult = MultimodalityCoVLogic.computeMvalueCoV(sInFile, fMvalueThold, fCoVALPct, iMinBinSize);
 		if (iResult == -1) {
 			GuiPackage.showErrorMessage("No samplers found in results file - please check your file.",
 					"Input file error");
