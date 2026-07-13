@@ -8,7 +8,6 @@ import java.io.PrintStream;
 import java.util.ListIterator;
 
 import org.apache.commons.lang3.math.NumberUtils;
-import org.apache.jmeter.gui.GuiPackage;
 
 import com.github.rbourga.jmeter.apdex.logic.ApdexLogic;
 import com.github.rbourga.jmeter.common.FileServices;
