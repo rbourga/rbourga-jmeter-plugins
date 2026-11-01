@@ -31,6 +31,7 @@ public final class ApdexLogic {
 
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
+	private static final String PASSFAIL_TEST_COLNAME = "Failed";
 	private static PowerTableModel pwrTblMdlStats = new PowerTableModel(
 			new String[] { 
 					JMeterUtils.getResString("sampler label"), // Label
@@ -42,7 +43,7 @@ public final class ApdexLogic {
 					"Apdex Min Score",
 					"Apdex Rating",
 					"Small Group", // true if number of samples < 100
-					"Failed" // true if value less than the specified threshold
+					PASSFAIL_TEST_COLNAME // true if value less than the specified threshold
 			}, new Class[] {
 					String.class, // Label
 					Integer.class, // # Samples
@@ -55,7 +56,6 @@ public final class ApdexLogic {
 					String.class, // Small Group
 					String.class // Failed
 			});
-	private static int PASSFAIL_TEST_COLNBR = 9; // Position of Failed column in the table
 
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
@@ -212,7 +212,7 @@ public final class ApdexLogic {
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_STATS + "html";
 		String sTableTitle = HTML_STATS_TITLE;
-		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
+		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNAME);
 		return sOutputFile;
 	}
 

@@ -33,6 +33,7 @@ public final class TukeyOutlierDetectorLogic {
 
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
+	private static final String PASSFAIL_TEST_COLNAME = "Failed";
 	private static PowerTableModel pwrTblMdlStats = new PowerTableModel(
 			new String[] {
 					JMeterUtils.getResString("sampler label"), // Label
@@ -42,7 +43,7 @@ public final class TukeyOutlierDetectorLogic {
 					"# Removed", // number of samples that have been discarded
 					"Removed %", // percentage of samples that have been discarded
 					"Small Success Group", // true if remaining number of successful samples < 100
-					"Failed" // true if value greater than the specified threshold
+					PASSFAIL_TEST_COLNAME // true if value greater than the specified threshold
 			}, new Class[] {
 					String.class, // Label
 					Integer.class, // # Samples
@@ -53,7 +54,6 @@ public final class TukeyOutlierDetectorLogic {
 					String.class, // Small Success Group
 					String.class // Failed
 			});
-	private static int PASSFAIL_TEST_COLNBR = 7; // Position of Failed column in the table
 
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
@@ -242,7 +242,7 @@ public final class TukeyOutlierDetectorLogic {
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_STATS + "html";
 		String sTableTitle = HTML_STATS_TITLE + " (Removal Acceptable Limit = " + sRemALPct + ")";
-		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
+		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNAME);
 		return sOutputFile;
 	}
 

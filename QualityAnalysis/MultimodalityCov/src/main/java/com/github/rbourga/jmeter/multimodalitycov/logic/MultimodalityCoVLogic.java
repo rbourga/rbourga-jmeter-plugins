@@ -30,6 +30,7 @@ public final class MultimodalityCoVLogic {
 
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
+	private static final String PASSFAIL_TEST_COLNAME = "Failed";
 	private static PowerTableModel pwrTblMdlStats = new PowerTableModel(
 			new String[] {
 					JMeterUtils.getResString("sampler label"), // Label
@@ -42,7 +43,7 @@ public final class MultimodalityCoVLogic {
 					"Bin Size",
 					"mValue",
 					"Multimodal", // true if multimodal, false otherwise
-					"Failed" // true if excessive CoV or multimodal
+					PASSFAIL_TEST_COLNAME // true if excessive CoV or multimodal
 			}, new Class[] {
 					String.class, // Label
 					Integer.class, // # Samples
@@ -56,7 +57,6 @@ public final class MultimodalityCoVLogic {
 					String.class, // Multimodal
 					String.class // Failed
 			});
-	private static int PASSFAIL_TEST_COLNBR = 10; // Position of Failed column in the table
 
 	private static PowerTableModel pwrTblMdlRows = new PowerTableModel(
 			new String[] {
@@ -208,7 +208,7 @@ public final class MultimodalityCoVLogic {
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_STATS+ "html";
 		String sTableTitle = HTML_STATS_TITLE + " (Modality threshold = " + sMvalueThold + ", CoV Acceptable Limit = " + sCoVALPct + ")";
-		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
+		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNAME);
 		return sOutputFile;
 	}
 

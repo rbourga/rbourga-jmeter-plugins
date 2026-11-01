@@ -130,24 +130,35 @@ public final class FileServices {
 	}
 
 	public static void saveTableAsHTML(String sFilePath, String sTblCaption, DefaultTableModel tblMdl,
-			int iBoolColNbr) {
+			String highlightColumnName) {
 		/**
 		 * This method saves the data from a table model into an HTML file. Background
-		 * color of the rows depend on iBoolClnNbr and will be set as follow:
-		 * -1:default color
-		 * any positive number: will check for value in the column number and if:
-		 *  true: red 
-		 *  false: green
-		 *  na: orange
+		 * color of the rows depend on highlightColumnName and will be set as follow:
+		 * 	null -> default color
+		 *  "true" -> red 
+		 *  "false" -> green
+		 *  "na" -> orange
 		 */
 		DecimalFormat df4digits = new DecimalFormat("#.####");
+		
+	    Integer boolColIdx = null;
+	    if (highlightColumnName != null && !highlightColumnName.isEmpty()) {
+	        for (int i = 0; i < tblMdl.getColumnCount(); i++) {
+	            if (tblMdl.getColumnName(i).equalsIgnoreCase(highlightColumnName)) {
+	                boolColIdx = i;
+	                break;
+	            }
+	        }
+	    }
 
 		// Create empty HTML shell
 		Document docHtml = Document.createShell("");
 		Element eBdy = docHtml.body();
+
 		// Add table with border & caption
 		Element eTbl = eBdy.appendElement("table border");
 		eTbl.append("<caption>" + sTblCaption + "</caption>");
+
 		// Write the table headers
 		Element eTrHdr = docHtml.createElement("tr");
 		int colCnt = tblMdl.getColumnCount();
@@ -157,33 +168,46 @@ public final class FileServices {
 			eTrHdr.appendChild(eTh);
 		}
 		eTbl.appendChild(eTrHdr);
+
 		// Write the data rows
-		Element eTrData = null;
 		int rowCnt = tblMdl.getRowCount();
 		for (int i = 0; i < rowCnt; i++) {
-			if (iBoolColNbr == -1) {
+			Element eTrData;
+			
+			if (boolColIdx == null) {
 				// Default row color
 				eTrData = docHtml.createElement("tr");
-			} else if (tblMdl.getValueAt(i, iBoolColNbr).toString().equalsIgnoreCase("true")) {
-				// Highlight the row in orange if failed
-				eTrData = docHtml.createElement("tr style=\"background-color: tomato\"");
-			} else if (tblMdl.getValueAt(i, iBoolColNbr).toString().equalsIgnoreCase("na")) {
-				// Highlight the row in yellow if not applicable
-				eTrData = docHtml.createElement("tr style=\"background-color: orange\"");
 			} else {
-				// Highlight the row in lawngreen if passed
-				eTrData = docHtml.createElement("tr style=\"background-color: mediumseagreen\"");
+	            Object value = tblMdl.getValueAt(i, boolColIdx);
+	            String sValue = value == null ? "" : value.toString().trim();
+	            
+	            if ("true".equalsIgnoreCase(sValue)) {
+	            	// Highlight the row in orange if failed
+	            	eTrData = docHtml.createElement("tr style=\"background-color: tomato\"");
+	            } else if ("false".equalsIgnoreCase(sValue)) {
+	                // Highlight the row in green if passed
+	                eTrData = docHtml.createElement("tr style=\"background-color: mediumseagreen\"");
+	            } else if ("na".equalsIgnoreCase(sValue)) {
+	                // Highlight the row in yellow if not applicable
+	                eTrData = docHtml.createElement("tr style=\"background-color: orange\"");
+	            } else {
+	                // default row colour for missing/null/unknown values
+	                eTrData = docHtml.createElement("tr");
+	            }
 			}
+				
 			for (int j = 0; j < colCnt; j++) {
 				Element eTd = docHtml.createElement("td");
-				String sHtmlOut = tblMdl.getValueAt(i, j).toString();
+				
+	            Object cellValue = tblMdl.getValueAt(i, j);
+	            String sHtmlOut = cellValue == null ? "" : cellValue.toString();
+
 				// Convert to percentage if needed
 				String sColName = tblMdl.getColumnName(j);
-				if (sColName.contains("%")) {
-					double dPctValue = ((double) tblMdl.getValueAt(i, j)) * 100;
+	            if (sColName.contains("%") && cellValue instanceof Number) {
+	                double dPctValue = ((Number) cellValue).doubleValue() * 100;
 					// Only keep 4 digits
-					String sRoundedPct = df4digits.format(dPctValue);
-					sHtmlOut = sRoundedPct + "%";
+	                sHtmlOut = df4digits.format(dPctValue) + "%";
 				}
 				eTd.text(sHtmlOut);
 				eTrData.appendChild(eTd);
@@ -192,18 +216,10 @@ public final class FileServices {
 		}
 
 		// Save the HTML to the file
-		FileWriter fileWrtr = null;
-		try {
-			fileWrtr = new FileWriter(sFilePath);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-		try {
-			fileWrtr.write(docHtml.toString());
-			fileWrtr.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	    try (FileWriter fileWrtr = new FileWriter(sFilePath)) {
+	        fileWrtr.write(docHtml.toString());
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	    }
 	}
-
 }

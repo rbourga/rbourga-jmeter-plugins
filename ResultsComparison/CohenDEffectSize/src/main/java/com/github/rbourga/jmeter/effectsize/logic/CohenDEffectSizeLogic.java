@@ -34,6 +34,7 @@ public final class CohenDEffectSizeLogic {
 
 	// TODO add the new column labels to
 	// core/org/apache/jmeter/resources/messages.properties files.
+	private static final String PASSFAIL_TEST_COLNAME = "Failed";
 	private static PowerTableModel pwrTblMdlStats = new PowerTableModel(
 			new String[] {
 					JMeterUtils.getResString("sampler label"), // Label
@@ -43,7 +44,7 @@ public final class CohenDEffectSizeLogic {
 					"Average B",
 					"Cohen's d", // d
 					"Diff Rating", // Descriptor
-					"Failed" // true if value more than the specified threshold
+					PASSFAIL_TEST_COLNAME // true if value more than the specified threshold
 			}, new Class[] {
 					String.class, // Label
 					Integer.class, // # Samples A
@@ -54,7 +55,6 @@ public final class CohenDEffectSizeLogic {
 					String.class, // Diff Rating
 					String.class // Failed
 			});
-	private static int PASSFAIL_TEST_COLNBR = 7; // Position of Failed column in the table
 
 	public static PowerTableModel getPwrTblMdelStats() {
 		return pwrTblMdlStats;
@@ -320,7 +320,7 @@ public final class CohenDEffectSizeLogic {
 		String sFileBaseName = FilenameUtils.getBaseName(sFilePath);
 		String sOutputFile = sFileDirectoryName + sFileBaseName + SUFFIX_STATS + "html";
 		String sTableTitle = HTML_STATS_TITLE + " (Cohen's d Acceptable Limit = " + sCohensdAL + ")";
-		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNBR);
+		FileServices.saveTableAsHTML(sOutputFile, sTableTitle, pwrTblMdlStats, PASSFAIL_TEST_COLNAME);
 		return sOutputFile;
 	}
 
