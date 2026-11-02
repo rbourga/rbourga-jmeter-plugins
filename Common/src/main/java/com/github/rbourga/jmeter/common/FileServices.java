@@ -28,6 +28,45 @@ import org.jsoup.nodes.Element;
  * Various methods for handling files
  */
 public final class FileServices {
+	
+	/**
+	 * Enum for row colors based on test result
+	 */
+	public enum RowColor {
+	    DEFAULT(""),
+	    FAIL("tomato"),
+	    PASS("mediumseagreen"),
+	    NA("orange");
+
+	    private final String cssColor;
+
+	    RowColor(String cssColor) {
+	        this.cssColor = cssColor;
+	    }
+
+	    public String getCssColor() {
+	        return cssColor;
+	    }
+
+	    public static RowColor fromValue(String value) {
+	        if (value == null) {
+	            return DEFAULT;
+	        }
+
+	        String s = value.trim();
+
+	        if ("true".equalsIgnoreCase(s)) {
+	            return FAIL;
+	        }
+	        if ("false".equalsIgnoreCase(s)) {
+	            return PASS;
+	        }
+	        if ("na".equalsIgnoreCase(s)) {
+	            return NA;
+	        }
+	        return DEFAULT;
+	    }
+	}
 
 	/*
 	 * Validation methods
@@ -143,13 +182,9 @@ public final class FileServices {
 		
 	    Integer boolColIdx = null;
 	    if (highlightColumnName != null && !highlightColumnName.isEmpty()) {
-	        for (int i = 0; i < tblMdl.getColumnCount(); i++) {
-	            if (tblMdl.getColumnName(i).equalsIgnoreCase(highlightColumnName)) {
-	                boolColIdx = i;
-	                break;
-	            }
-	        }
+	        boolColIdx = findColumnIndex(tblMdl, highlightColumnName);
 	    }
+	    Integer smallGroupColIdx = findColumnIndex(tblMdl, "Small Group");
 
 		// Create empty HTML shell
 		Document docHtml = Document.createShell("");
@@ -172,29 +207,26 @@ public final class FileServices {
 		// Write the data rows
 		int rowCnt = tblMdl.getRowCount();
 		for (int i = 0; i < rowCnt; i++) {
-			Element eTrData;
-			
-			if (boolColIdx == null) {
-				// Default row color
-				eTrData = docHtml.createElement("tr");
-			} else {
+		    Element eTrData = docHtml.createElement("tr");
+
+	        if (boolColIdx != null) {
 	            Object value = tblMdl.getValueAt(i, boolColIdx);
 	            String sValue = value == null ? "" : value.toString().trim();
-	            
-	            if ("true".equalsIgnoreCase(sValue)) {
-	            	// Highlight the row in orange if failed
-	            	eTrData = docHtml.createElement("tr style=\"background-color: tomato\"");
-	            } else if ("false".equalsIgnoreCase(sValue)) {
-	                // Highlight the row in green if passed
-	                eTrData = docHtml.createElement("tr style=\"background-color: mediumseagreen\"");
-	            } else if ("na".equalsIgnoreCase(sValue)) {
-	                // Highlight the row in yellow if not applicable
-	                eTrData = docHtml.createElement("tr style=\"background-color: orange\"");
-	            } else {
-	                // default row colour for missing/null/unknown values
-	                eTrData = docHtml.createElement("tr");
+
+	            RowColor rowColor = RowColor.fromValue(sValue);
+
+	            if (rowColor == RowColor.PASS && smallGroupColIdx != null) {
+	                Object smallGroupValue = tblMdl.getValueAt(i, smallGroupColIdx);
+	                String sSmallGroup = smallGroupValue == null ? "" : smallGroupValue.toString().trim();
+	                if ("true".equalsIgnoreCase(sSmallGroup)) {
+	                    rowColor = RowColor.NA;
+	                }
 	            }
-			}
+
+	            if (rowColor != RowColor.DEFAULT) {
+	                eTrData = docHtml.createElement("tr style=\"background-color: " + rowColor.getCssColor() + "\"");
+	            }
+	        }
 				
 			for (int j = 0; j < colCnt; j++) {
 				Element eTd = docHtml.createElement("td");
@@ -221,5 +253,21 @@ public final class FileServices {
 	    } catch (IOException e) {
 	        e.printStackTrace();
 	    }
+	}
+
+	private static Integer findColumnIndex(DefaultTableModel tblMdl, String expectedColumnName) {
+	    if (expectedColumnName == null || expectedColumnName.trim().isEmpty()) {
+	        return null;
+	    }
+
+	    String target = expectedColumnName.trim();
+
+	    for (int col = 0; col < tblMdl.getColumnCount(); col++) {
+	        String colName = tblMdl.getColumnName(col);
+	        if (colName != null && colName.trim().equalsIgnoreCase(target)) {
+	            return col;
+	        }
+	    }
+	    return null;
 	}
 }
