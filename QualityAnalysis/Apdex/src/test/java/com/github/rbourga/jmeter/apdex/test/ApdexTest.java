@@ -90,6 +90,19 @@ public class ApdexTest {
 			// Move the time for the next result
 			lStart = lEnd;
 		}
+		
+		// Creation of 30 results with random times between 1 and 3s to test Apdex
+		// score
+		lStart = lInitial;
+		for (int i = 0; i < 30; i++) {
+			lEnd = lStart + oRandom.nextInt(1000) + 2000;
+			oSampleResult = SampleResult.createTestSample(lStart, lEnd);
+			oSampleResult.setSampleLabel("SmallGroup_WithOutErrors");
+			oSampleEvent = TestResultsServices.resultToEvent(oSampleResult, true);
+			oPrintWriter.println(CSVSaveService.resultToDelimitedString(oSampleEvent));
+			// Move the time for the next result
+			lStart = lEnd;
+		}
 
 		oPrintWriter.close();
 		System.out.println("*****");
