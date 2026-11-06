@@ -36,7 +36,8 @@ public final class FileServices {
 	    DEFAULT(""),
 	    FAIL("tomato"),
 	    PASS("mediumseagreen"),
-	    NA("orange");
+	    NA("orange"),
+	    YELLOW("yellow");
 
 	    private final String cssColor;
 
@@ -219,7 +220,23 @@ public final class FileServices {
 	                Object smallGroupValue = tblMdl.getValueAt(i, smallGroupColIdx);
 	                String sSmallGroup = smallGroupValue == null ? "" : smallGroupValue.toString().trim();
 	                if ("true".equalsIgnoreCase(sSmallGroup)) {
-	                    rowColor = RowColor.NA;
+	                    Integer sampleCountColIdx = findColumnIndex(tblMdl, "# Samples");
+
+	                    if (sampleCountColIdx != null) {
+	                        Object sampleCountValue = tblMdl.getValueAt(i, sampleCountColIdx);
+
+	                        try {
+	                            double sampleCount = sampleCountValue == null
+	                                ? 0
+	                                : Double.parseDouble(sampleCountValue.toString().trim());
+
+	                            rowColor = sampleCount < 30 ? RowColor.NA : RowColor.YELLOW;
+	                        } catch (NumberFormatException e) {
+	                            rowColor = RowColor.NA; // safe fallback
+	                        }
+	                    } else {
+	                        rowColor = RowColor.NA; // no "# Samples" column found
+	                    }
 	                }
 	            }
 
