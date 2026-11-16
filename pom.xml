@@ -8,10 +8,27 @@
 	<maven.compiler.source>1.8</maven.compiler.source>
 	<maven.compiler.target>1.8</maven.compiler.target>
   </properties>
+  <url>https://github.com/rbourga/rbourga-jmeter-plugins</url>
   <scm>
+	<connection>scm:git:https://github.com/rbourga/rbourga-jmeter-plugins.git</connection>
+	<developerConnection>scm:git:ssh://git@github.com/rbourga/rbourga-jmeter-plugins.git</developerConnection>
 	<url>https://github.com/rbourga/rbourga-jmeter-plugins</url>
-	<developerConnection>Robert Bourgault du Coudray</developerConnection>
+	<tag>HEAD</tag>
   </scm>
+  <developers>
+	<developer>
+	  <id>rbourga</id>
+	  <name>Robert Bourgault du Coudray</name>
+	  <url>https://github.com/rbourga</url>
+	</developer>
+  </developers>
+  <licenses>
+	<license>
+	  <name>Apache License, Version 2.0</name>
+	  <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+	  <distribution>repo</distribution>
+	</license>
+  </licenses>
   <dependencies>
 	<dependency>
 		<groupId>org.apache.jmeter</groupId>
@@ -57,7 +74,7 @@
 	</dependency>
   </dependencies>
   <name>Parent POM</name>
-  <description></description>
+	<description>Parent Maven project for the JMeter plugins maintained in this repository.</description>
   <modules>
   	<module>QualityAnalysis/Apdex</module>
   	<module>ResultsComparison/CohenDEffectSize</module>
@@ -67,4 +84,61 @@
   	<module>OutlierDetection/TukeyRightTailOutlierDetector</module>
   </modules>
   <version>5.6.3</version>
+  <build>
+	<plugins>
+	  <plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-source-plugin</artifactId>
+		<version>3.4.0</version>
+		<executions>
+		  <execution>
+			<id>attach-sources</id>
+			<goals>
+			  <goal>jar-no-fork</goal>
+			</goals>
+		  </execution>
+		</executions>
+	  </plugin>
+	  <plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-javadoc-plugin</artifactId>
+		<version>3.12.0</version>
+		<configuration>
+		  <doclint>none</doclint>
+		</configuration>
+		<executions>
+		  <execution>
+			<id>attach-javadocs</id>
+			<goals>
+			  <goal>jar</goal>
+			</goals>
+		  </execution>
+		</executions>
+	  </plugin>
+	  <plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-gpg-plugin</artifactId>
+		<version>3.2.8</version>
+		<executions>
+		  <execution>
+			<id>sign-artifacts</id>
+			<phase>verify</phase>
+			<goals>
+			  <goal>sign</goal>
+			</goals>
+		  </execution>
+		</executions>
+	  </plugin>
+	  <plugin>
+		<groupId>org.sonatype.central</groupId>
+		<artifactId>central-publishing-maven-plugin</artifactId>
+		<version>0.12.0</version>
+		<extensions>true</extensions>
+		<configuration>
+		  <publishingServerId>central</publishingServerId>
+		  <autoPublish>false</autoPublish>
+		</configuration>
+	  </plugin>
+	</plugins>
+  </build>
 </project>
