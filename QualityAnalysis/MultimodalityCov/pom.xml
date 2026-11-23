@@ -20,6 +20,6 @@
   	<groupId>com.github.rbourga.jmeter</groupId>
   	<artifactId>rbourga-jmeter-plugins</artifactId>
   	<version>5.6.3</version>
-  	<relativePath>../pom.xml</relativePath>
+  	<relativePath>../../pom.xml</relativePath>
   </parent>
 </project>
