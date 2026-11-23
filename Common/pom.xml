@@ -17,7 +17,7 @@
   <description>Common classes shared by the JMeter plugins in this repo.</description>
   <name>Common Classes for Quality Analysis</name>
   <parent>
-  	<groupId>com.github.rbourga.jmeter</groupId>
+	<groupId>io.github.rbourga.jmeter</groupId>
   	<artifactId>rbourga-jmeter-plugins</artifactId>
   	<version>5.6.3</version>
   	<relativePath>../pom.xml</relativePath>
